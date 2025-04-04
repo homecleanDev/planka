@@ -1,14 +1,10 @@
 :global(#app) {
   .cardWrapper {
     min-height: 1px;
-    transition: opacity 0.15s ease-in-out;
-    opacity: 1;
-    visibility: visible;
   }
 
-  .hidden {
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
+  .cardPlaceholder {
+    min-height: 100px; // Adjust this value based on your card's typical height
+    background: transparent;
   }
 }
