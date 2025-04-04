@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import { useTranslation } from 'react-i18next';
@@ -7,10 +7,10 @@ import { Button, Icon } from 'semantic-ui-react';
 import { usePopup } from '../../lib/popup';
 
 import DroppableTypes from '../../constants/DroppableTypes';
-import CardContainer from '../../containers/CardContainer';
 import NameEdit from './NameEdit';
 import CardAdd from './CardAdd';
 import ActionsStep from './ActionsStep';
+import VirtualCard from './VirtualCard';
 import { ReactComponent as PlusMathIcon } from '../../assets/images/plus-math-icon.svg';
 
 import styles from './List.module.scss';
@@ -33,6 +33,13 @@ const List = React.memo(
 
     const nameEdit = useRef(null);
     const listWrapper = useRef(null);
+
+    // Memoize the cards rendering to prevent unnecessary re-renders
+    const renderedCards = useMemo(() => {
+      return cardIds.map((cardId, cardIndex) => (
+        <VirtualCard key={cardId} id={cardId} index={cardIndex} />
+      ));
+    }, [cardIds]);
 
     const handleHeaderClick = useCallback(() => {
       if (isPersisted && canEdit) {
@@ -80,12 +87,9 @@ const List = React.memo(
         isDropDisabled={!isPersisted}
       >
         {({ innerRef, droppableProps, placeholder }) => (
-          // eslint-disable-next-line react/jsx-props-no-spreading
           <div {...droppableProps} ref={innerRef}>
             <div className={styles.cards}>
-              {cardIds.map((cardId, cardIndex) => (
-                <CardContainer key={cardId} id={cardId} index={cardIndex} />
-              ))}
+              {renderedCards}
               {placeholder}
               {canEdit && (
                 <CardAdd
