@@ -2,6 +2,7 @@ import { attr, fk, many } from 'redux-orm';
 
 import BaseModel from './BaseModel';
 import ActionTypes from '../constants/ActionTypes';
+import { saveBoardFilters, loadBoardFilters } from '../lib/boardFilters';
 
 import User from './User';
 import Label from './Label';
@@ -37,10 +38,18 @@ export default class extends BaseModel {
     switch (type) {
       case ActionTypes.LOCATION_CHANGE_HANDLE:
         if (payload.board) {
-          Board.upsert({
+          const board = Board.upsert({
             ...payload.board,
             isFetching: false,
           });
+
+          // Load saved filters
+          const savedFilters = loadBoardFilters(payload.board.id);
+          if (savedFilters && savedFilters.filterUsers) {
+            savedFilters.filterUsers.forEach(userId => {
+              board.filterUsers.add(userId);
+            });
+          }
         }
 
         break;
@@ -82,10 +91,18 @@ export default class extends BaseModel {
         break;
       case ActionTypes.CORE_INITIALIZE:
         if (payload.board) {
-          Board.upsert({
+          const initializedBoard = Board.upsert({
             ...payload.board,
             isFetching: false,
           });
+
+          // Load saved filters on core initialization
+          const savedFiltersOnInit = loadBoardFilters(payload.board.id);
+          if (savedFiltersOnInit && savedFiltersOnInit.filterUsers) {
+            savedFiltersOnInit.filterUsers.forEach(userId => {
+              initializedBoard.filterUsers.add(userId);
+            });
+          }
         }
 
         payload.boards.forEach((board) => {
@@ -94,13 +111,17 @@ export default class extends BaseModel {
 
         break;
       case ActionTypes.USER_TO_BOARD_FILTER_ADD:
-        Board.withId(payload.boardId).filterUsers.add(payload.id);
-
+        const boardWithAddedUser = Board.withId(payload.boardId);
+        boardWithAddedUser.filterUsers.add(payload.id);
+        saveBoardFilters(payload.boardId, boardWithAddedUser.filterUsers.toRefArray());
         break;
+
       case ActionTypes.USER_FROM_BOARD_FILTER_REMOVE:
-        Board.withId(payload.boardId).filterUsers.remove(payload.id);
-
+        const boardWithRemovedUser = Board.withId(payload.boardId);
+        boardWithRemovedUser.filterUsers.remove(payload.id);
+        saveBoardFilters(payload.boardId, boardWithRemovedUser.filterUsers.toRefArray());
         break;
+
       case ActionTypes.PROJECT_CREATE_HANDLE:
         payload.boards.forEach((board) => {
           Board.upsert(board);
@@ -135,10 +156,18 @@ export default class extends BaseModel {
 
         break;
       case ActionTypes.BOARD_FETCH__SUCCESS:
-        Board.upsert({
+        const fetchedBoard = Board.upsert({
           ...payload.board,
           isFetching: false,
         });
+
+        // Load saved filters after board fetch
+        const savedFiltersAfterFetch = loadBoardFilters(payload.board.id);
+        if (savedFiltersAfterFetch && savedFiltersAfterFetch.filterUsers) {
+          savedFiltersAfterFetch.filterUsers.forEach(userId => {
+            fetchedBoard.filterUsers.add(userId);
+          });
+        }
 
         break;
       case ActionTypes.BOARD_FETCH__FAILURE:

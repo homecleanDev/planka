@@ -73,9 +73,12 @@ export default class extends BaseModel {
 
         break;
       case ActionTypes.BOARD_MEMBERSHIP_UPDATE:
-        BoardMembership.withId(payload.id).update(payload.data);
+        {
+          console.log(payload);
+          BoardMembership.withId(payload.id).update(payload.data);
 
-        break;
+          break;
+        }
       case ActionTypes.BOARD_MEMBERSHIP_UPDATE__SUCCESS:
       case ActionTypes.BOARD_MEMBERSHIP_UPDATE_HANDLE:
         BoardMembership.upsert(payload.boardMembership);
