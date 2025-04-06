@@ -1,4 +1,4 @@
-FROM node:20.19.0-alpine as server-dependencies
+FROM node:20-alpine as server-dependencies
 
 RUN apk -U upgrade \
   && apk add build-base python3 \
@@ -14,9 +14,10 @@ RUN mkdir .tmp
 RUN npm install npm@latest --global \
   && npm install pnpm --global \
   && pnpm import \
-  && pnpm install --prod
+  && pnpm install --prod \
+  && npm rebuild bcrypt
 
-FROM node:20.19.0 AS client
+FROM node:20 AS client
 
 WORKDIR /app
 
@@ -26,12 +27,13 @@ COPY client/package.json client/package-lock.json ./
 RUN npm install npm@latest --global \
   && npm install pnpm --global \
   && pnpm import \
-  && pnpm install --prod
+  && pnpm install --prod \
+  && npm rebuild bcrypt
 
 COPY client .
 RUN DISABLE_ESLINT_PLUGIN=true npm run build
 
-FROM node:20.19.0-alpine
+FROM node:20-alpine
 
 RUN apk -U upgrade \
   && apk add bash \
