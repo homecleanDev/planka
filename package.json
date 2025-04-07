@@ -58,6 +58,8 @@
     }
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.782.0",
+    "@aws-sdk/s3-request-presigner": "^3.782.0",
     "concurrently": "^8.2.2",
     "husky": "^8.0.3",
     "lint-staged": "^15.2.2"

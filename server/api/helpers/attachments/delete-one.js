@@ -1,5 +1,6 @@
 const path = require('path');
 const rimraf = require('rimraf');
+const s3 = require('../s3');
 
 module.exports = {
   inputs: {
@@ -35,7 +36,15 @@ module.exports = {
 
     if (attachment) {
       try {
-        rimraf.sync(path.join(sails.config.custom.attachmentsPath, attachment.dirname));
+        // Delete original file from S3
+        await s3.deleteFile(`attachments/${attachment.dirname}/${attachment.filename}`);
+
+        // Delete thumbnail from S3 if it exists
+        if (attachment.image) {
+          await s3.deleteFile(
+            `attachments/${attachment.dirname}/thumbnails/cover-256.${attachment.image.thumbnailsExtension}`,
+          );
+        }
       } catch (error) {
         console.warn(error.stack); // eslint-disable-line no-console
       }

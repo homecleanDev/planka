@@ -48,12 +48,13 @@ module.exports = {
   },
 
   customToJSON() {
+    // Generate the full URL from the stored key
+    const fullUrl = `https://${process.env.AWS_BUCKET}.s3.${process.env.AWS_DEFAULT_REGION}.amazonaws.com/attachments/${this.dirname}/${this.filename}`;
+
     return {
       ..._.omit(this, ['dirname', 'filename', 'image.thumbnailsExtension']),
-      url: `${sails.config.custom.attachmentsUrl}/${this.id}/download/${this.filename}`,
-      coverUrl: this.image
-        ? `${sails.config.custom.attachmentsUrl}/${this.id}/download/thumbnails/cover-256.${this.image.thumbnailsExtension}`
-        : null,
+      url: fullUrl,
+      coverUrl: fullUrl,
     };
   },
 };

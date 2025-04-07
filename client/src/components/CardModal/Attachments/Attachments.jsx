@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Gallery, Item as GalleryItem } from 'react-photoswipe-gallery';
 import { Button } from 'semantic-ui-react';
 import { useToggle } from '../../../lib/hooks';
+import isImage from '../../../utils/is-image';
 
 import Item from './Item';
 
@@ -100,7 +101,7 @@ const Attachments = React.memo(
                 isCover={item.isCover}
                 isPersisted={item.isPersisted}
                 canEdit={canEdit}
-                onClick={item.image || isPdf ? open : undefined}
+                onClick={item.image || isPdf || isImage(item.coverUrl) ? open : undefined}
                 onCoverSelect={() => handleCoverSelect(item.id)}
                 onCoverDeselect={handleCoverDeselect}
                 onUpdate={(data) => handleUpdate(item.id, data)}

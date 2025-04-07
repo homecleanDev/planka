@@ -14,6 +14,10 @@ services:
       - DATABASE_URL=postgresql://user:password@postgres:5432/planka
       - SECRET_KEY=notsecretkey
       - BASE_URL=http://localhost:1337
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
+      - AWS_BUCKET=${AWS_BUCKET}
 
       # - TRUST_PROXY=0
       # - TOKEN_EXPIRES_IN=365 # In days

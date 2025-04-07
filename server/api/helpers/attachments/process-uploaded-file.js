@@ -5,6 +5,7 @@ const moveFile = require('move-file');
 const filenamify = require('filenamify');
 const { v4: uuid } = require('uuid');
 const sharp = require('sharp');
+const s3Helper = require('../s3');
 
 module.exports = {
   inputs: {
@@ -15,18 +16,15 @@ module.exports = {
   },
 
   async fn(inputs) {
+    const s3 = await s3Helper.fn();
     const dirname = uuid();
-
-    // FIXME: https://github.com/sindresorhus/filenamify/issues/13
     const filename = filenamify(inputs.file.filename);
+    const key = `attachments/${dirname}/${filename}`;
 
-    const rootPath = path.join(sails.config.custom.attachmentsPath, dirname);
-    const filePath = path.join(rootPath, filename);
+    // Upload original file to S3
+    const fileKey = await s3.uploadFile(inputs.file, key);
 
-    fs.mkdirSync(rootPath);
-    await moveFile(inputs.file.fd, filePath);
-
-    let image = sharp(filePath, {
+    let image = sharp(inputs.file.fd, {
       animated: true,
     });
 
@@ -40,12 +38,10 @@ module.exports = {
       filename,
       image: null,
       name: inputs.file.filename,
+      url: fileKey,
     };
 
     if (metadata && !['svg', 'pdf'].includes(metadata.format)) {
-      const thumbnailsPath = path.join(rootPath, 'thumbnails');
-      fs.mkdirSync(thumbnailsPath);
-
       let { width, pageHeight: height = metadata.height } = metadata;
       if (metadata.orientation && metadata.orientation > 4) {
         [image, width, height] = [image.rotate(), height, width];
@@ -53,9 +49,10 @@ module.exports = {
 
       const isPortrait = height > width;
       const thumbnailsExtension = metadata.format === 'jpeg' ? 'jpg' : metadata.format;
+      const thumbnailKey = `attachments/${dirname}/thumbnails/cover-256.${thumbnailsExtension}`;
 
       try {
-        await image
+        const thumbnailBuffer = await image
           .resize(
             256,
             isPortrait ? 320 : undefined,
@@ -65,20 +62,30 @@ module.exports = {
                 }
               : undefined,
           )
-          .toFile(path.join(thumbnailsPath, `cover-256.${thumbnailsExtension}`));
+          .toBuffer();
+
+        // Upload thumbnail to S3
+        const uploadedThumbnailKey = await s3.uploadFile(
+          { fd: thumbnailBuffer, type: `image/${thumbnailsExtension}` },
+          thumbnailKey,
+        );
 
         fileData.image = {
           width,
           height,
           thumbnailsExtension,
+          url: uploadedThumbnailKey,
         };
-      } catch (error1) {
-        try {
-          rimraf.sync(thumbnailsPath);
-        } catch (error2) {
-          console.warn(error2.stack); // eslint-disable-line no-console
-        }
+      } catch (error) {
+        console.warn(error.stack); // eslint-disable-line no-console
       }
+    }
+
+    // Clean up temporary file
+    try {
+      rimraf.sync(inputs.file.fd);
+    } catch (error) {
+      console.warn(error.stack); // eslint-disable-line no-console
     }
 
     return fileData;

@@ -8,7 +8,7 @@ PLANKA_DOCKER_CONTAINER_POSTGRES="planka-postgres-1"
 PLANKA_DOCKER_CONTAINER_PLANKA="planka-planka-1"
 
 # Create Temporary folder
-BACKUP_DATETIME=$(date --utc +%FT%H-%M-%SZ)
+BACKUP_DATETIME=$1
 mkdir -p $BACKUP_DATETIME-backup
 
 # Dump DB into SQL File
