@@ -53,6 +53,10 @@ module.exports = {
       type: 'json',
       custom: backgroundImageValidator,
     },
+    member_card_deletion_enabled: {
+      type: 'boolean',
+      required: false,
+    },
   },
 
   exits: {
@@ -76,7 +80,7 @@ module.exports = {
       throw Errors.PROJECT_NOT_FOUND; // Forbidden
     }
 
-    const values = _.pick(inputs, ['name', 'background', 'backgroundImage']);
+    const values = _.pick(inputs, ['name', 'background', 'backgroundImage', 'member_card_deletion_enabled']);
 
     project = await sails.helpers.projects.updateOne.with({
       values,

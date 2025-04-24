@@ -14,6 +14,8 @@ const makeMapStateToProps = () => {
     const { name, isPersisted } = selectListById(state, id);
     const cardIds = selectCardIdsByListId(state, id);
     const currentUserMembership = selectors.selectCurrentUserMembershipForCurrentBoard(state);
+    const isCurrentUserManager = selectors.selectIsCurrentUserManagerForCurrentProject(state);
+    const currentProject = selectors.selectCurrentProject(state);
 
     const isCurrentUserEditor =
       !!currentUserMembership && currentUserMembership.role === BoardMembershipRoles.EDITOR;
@@ -25,6 +27,8 @@ const makeMapStateToProps = () => {
       isPersisted,
       cardIds,
       canEdit: isCurrentUserEditor,
+      isCurrentUserManager,
+      member_card_deletion_enabled: currentProject?.member_card_deletion_enabled || false,
     };
   };
 };

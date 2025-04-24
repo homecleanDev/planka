@@ -8,6 +8,8 @@ import { useSteps } from '../../hooks';
 import ListSortStep from '../ListSortStep';
 import DeleteStep from '../DeleteStep';
 
+import { usePopup } from '../../lib/popup';
+
 import styles from './ActionsStep.module.scss';
 
 const StepTypes = {
@@ -15,7 +17,7 @@ const StepTypes = {
   SORT: 'SORT',
 };
 
-const ActionsStep = React.memo(({ onNameEdit, onCardAdd, onSort, onDelete, onClose }) => {
+const ActionsStep = React.memo(({ onNameEdit, onCardAdd, onSort, onDelete, onClose, isCurrentUserManager, member_card_deletion_enabled }) => {
   const [t] = useTranslation();
   const [step, openStep, handleBack] = useSteps();
 
@@ -47,6 +49,9 @@ const ActionsStep = React.memo(({ onNameEdit, onCardAdd, onSort, onDelete, onClo
     },
     [onSort, onClose],
   );
+
+  const canDelete = isCurrentUserManager || member_card_deletion_enabled;
+  console.log('canDelete actionsstep', canDelete, member_card_deletion_enabled);
 
   if (step && step.type) {
     switch (step.type) {
@@ -90,11 +95,13 @@ const ActionsStep = React.memo(({ onNameEdit, onCardAdd, onSort, onDelete, onClo
               context: 'title',
             })}
           </Menu.Item>
-          <Menu.Item className={styles.menuItem} onClick={handleDeleteClick}>
-            {t('action.deleteList', {
-              context: 'title',
-            })}
-          </Menu.Item>
+          {canDelete && (
+            <Menu.Item className={styles.menuItem} onClick={handleDeleteClick}>
+              {t('action.deleteList', {
+                context: 'title',
+              })}
+            </Menu.Item>
+          )}
         </Menu>
       </Popup.Content>
     </>
@@ -107,6 +114,8 @@ ActionsStep.propTypes = {
   onDelete: PropTypes.func.isRequired,
   onSort: PropTypes.func.isRequired,
   onClose: PropTypes.func.isRequired,
+  isCurrentUserManager: PropTypes.bool.isRequired,
+  member_card_deletion_enabled: PropTypes.bool.isRequired,
 };
 
 export default ActionsStep;

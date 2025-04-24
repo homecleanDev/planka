@@ -1,4 +1,4 @@
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import { useTranslation } from 'react-i18next';
@@ -38,8 +38,8 @@ const CardModal = React.memo(
     isAllActivitiesFetched,
     isActivitiesDetailsVisible,
     isActivitiesDetailsFetching,
-    listId,
     boardId,
+    listId,
     projectId,
     users,
     labels,
@@ -52,6 +52,8 @@ const CardModal = React.memo(
     canEdit,
     canEditCommentActivities,
     canEditAllCommentActivities,
+    isCurrentUserManager,
+    member_card_deletion_enabled,
     onUpdate,
     onMove,
     onTransfer,
@@ -173,6 +175,9 @@ const CardModal = React.memo(
     const userIds = users.map((user) => user.id);
     const labelIds = labels.map((label) => label.id);
 
+    const canDelete = isCurrentUserManager || member_card_deletion_enabled;
+
+    console.log('canDelete cardmodal', canDelete, member_card_deletion_enabled);
     const contentNode = (
       <Grid className={styles.grid}>
         <Grid.Row className={styles.headerPadding}>
@@ -507,17 +512,21 @@ const CardModal = React.memo(
                   <Icon name="copy outline" className={styles.actionIcon} />
                   {t('action.duplicate')}
                 </Button>
-                <DeletePopup
-                  title="common.deleteCard"
-                  content="common.areYouSureYouWantToDeleteThisCard"
-                  buttonContent="action.deleteCard"
-                  onConfirm={onDelete}
-                >
-                  <Button fluid className={styles.actionButton}>
-                    <Icon name="trash alternate outline" className={styles.actionIcon} />
-                    {t('action.delete')}
-                  </Button>
-                </DeletePopup>
+                {canDelete && (
+                  <DeletePopup
+                    title="common.deleteCard"
+                    content="common.areYouSureYouWantToDeleteThisCard"
+                    buttonContent="action.deleteCard"
+                    onConfirm={onDelete}
+                    isCurrentUserManager={isCurrentUserManager}
+                    member_card_deletion_enabled={member_card_deletion_enabled}
+                  >
+                    <Button fluid className={styles.actionButton}>
+                      <Icon name="trash alternate outline" className={styles.actionIcon} />
+                      {t('action.delete')}
+                    </Button>
+                  </DeletePopup>
+                )}
               </div>
             </Grid.Column>
           )}
@@ -547,8 +556,8 @@ CardModal.propTypes = {
   isAllActivitiesFetched: PropTypes.bool.isRequired,
   isActivitiesDetailsVisible: PropTypes.bool.isRequired,
   isActivitiesDetailsFetching: PropTypes.bool.isRequired,
-  listId: PropTypes.string.isRequired,
   boardId: PropTypes.string.isRequired,
+  listId: PropTypes.string.isRequired,
   projectId: PropTypes.string.isRequired,
   /* eslint-disable react/forbid-prop-types */
   users: PropTypes.array.isRequired,
@@ -563,6 +572,8 @@ CardModal.propTypes = {
   canEdit: PropTypes.bool.isRequired,
   canEditCommentActivities: PropTypes.bool.isRequired,
   canEditAllCommentActivities: PropTypes.bool.isRequired,
+  isCurrentUserManager: PropTypes.bool.isRequired,
+  member_card_deletion_enabled: PropTypes.bool.isRequired,
   onUpdate: PropTypes.func.isRequired,
   onMove: PropTypes.func.isRequired,
   onTransfer: PropTypes.func.isRequired,

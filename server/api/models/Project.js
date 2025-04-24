@@ -58,6 +58,10 @@ module.exports = {
       type: 'json',
       columnName: 'background_image',
     },
+    member_card_deletion_enabled: {
+      type: 'boolean',
+      defaultsTo: false,
+    },
 
     //  ╔═╗╔╦╗╔╗ ╔═╗╔╦╗╔═╗
     //  ║╣ ║║║╠╩╗║╣  ║║╚═╗

@@ -19,6 +19,8 @@ const makeMapStateToProps = () => {
     const allBoardMemberships = selectors.selectMembershipsForCurrentBoard(state);
     const allLabels = selectors.selectLabelsForCurrentBoard(state);
     const currentUserMembership = selectors.selectCurrentUserMembershipForCurrentBoard(state);
+    const isCurrentUserManager = selectors.selectIsCurrentUserManagerForCurrentProject(state);
+    const currentProject = selectors.selectCurrentProject(state);
 
     const { name, dueDate, stopwatch, coverUrl, boardId, listId, isPersisted } = selectCardById(
       state,
@@ -52,6 +54,8 @@ const makeMapStateToProps = () => {
       allBoardMemberships,
       allLabels,
       canEdit: isCurrentUserEditor,
+      isCurrentUserManager,
+      member_card_deletion_enabled: currentProject?.member_card_deletion_enabled || false,
     };
   };
 };

@@ -27,6 +27,8 @@ const List = React.memo(
     onDelete,
     onSort,
     onCardCreate,
+    isCurrentUserManager,
+    member_card_deletion_enabled,
   }) => {
     const [t] = useTranslation();
     const [isAddCardOpened, setIsAddCardOpened] = useState(false);
@@ -130,6 +132,8 @@ const List = React.memo(
                     onCardAdd={handleCardAdd}
                     onDelete={onDelete}
                     onSort={onSort}
+                    isCurrentUserManager={isCurrentUserManager}
+                    member_card_deletion_enabled={member_card_deletion_enabled}
                   >
                     <Button className={classNames(styles.headerButton, styles.target)}>
                       <Icon fitted name="pencil" size="small" />
@@ -178,6 +182,8 @@ List.propTypes = {
   onSort: PropTypes.func.isRequired,
   onDelete: PropTypes.func.isRequired,
   onCardCreate: PropTypes.func.isRequired,
+  isCurrentUserManager: PropTypes.bool.isRequired,
+  member_card_deletion_enabled: PropTypes.bool.isRequired,
 };
 
 export default List;

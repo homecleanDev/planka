@@ -38,6 +38,8 @@ const Card = React.memo(
     allBoardMemberships,
     allLabels,
     canEdit,
+    isCurrentUserManager,
+    member_card_deletion_enabled,
     onUpdate,
     onMove,
     onTransfer,
@@ -197,6 +199,8 @@ const Card = React.memo(
                         onLabelUpdate={onLabelUpdate}
                         onLabelMove={onLabelMove}
                         onLabelDelete={onLabelDelete}
+                        isCurrentUserManager={isCurrentUserManager}
+                        member_card_deletion_enabled={member_card_deletion_enabled}
                       >
                         <Button className={classNames(styles.actionsButton, styles.target)}>
                           <Icon fitted name="pencil" size="small" />
@@ -237,6 +241,8 @@ Card.propTypes = {
   allLabels: PropTypes.array.isRequired,
   /* eslint-enable react/forbid-prop-types */
   canEdit: PropTypes.bool.isRequired,
+  isCurrentUserManager: PropTypes.bool.isRequired,
+  member_card_deletion_enabled: PropTypes.bool.isRequired,
   onUpdate: PropTypes.func.isRequired,
   onMove: PropTypes.func.isRequired,
   onTransfer: PropTypes.func.isRequired,

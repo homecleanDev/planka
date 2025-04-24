@@ -16,6 +16,7 @@ const mapStateToProps = (state) => {
   const allBoardMemberships = selectors.selectMembershipsForCurrentBoard(state);
   const allLabels = selectors.selectLabelsForCurrentBoard(state);
   const currentUserMembership = selectors.selectCurrentUserMembershipForCurrentBoard(state);
+  const currentProject = selectors.selectCurrentProject(state);
 
   const {
     name,
@@ -69,6 +70,8 @@ const mapStateToProps = (state) => {
     canEdit: isCurrentUserEditor,
     canEditCommentActivities: isCurrentUserEditorOrCanComment,
     canEditAllCommentActivities: isCurrentUserManager,
+    isCurrentUserManager,
+    member_card_deletion_enabled: currentProject?.member_card_deletion_enabled || false,
   };
 };
 

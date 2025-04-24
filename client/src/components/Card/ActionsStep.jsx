@@ -48,6 +48,8 @@ const ActionsStep = React.memo(
     onLabelMove,
     onLabelDelete,
     onClose,
+    isCurrentUserManager,
+    member_card_deletion_enabled,
   }) => {
     const [t] = useTranslation();
     const [step, openStep, handleBack] = useSteps();
@@ -174,6 +176,8 @@ const ActionsStep = React.memo(
       }
     }
 
+    const canDelete = isCurrentUserManager || member_card_deletion_enabled;
+
     return (
       <>
         <Popup.Header>
@@ -218,11 +222,13 @@ const ActionsStep = React.memo(
                 context: 'title',
               })}
             </Menu.Item>
-            <Menu.Item className={styles.menuItem} onClick={handleDeleteClick}>
-              {t('action.deleteCard', {
-                context: 'title',
-              })}
-            </Menu.Item>
+            {canDelete && (
+              <Menu.Item className={styles.menuItem} onClick={handleDeleteClick}>
+                {t('action.deleteCard', {
+                  context: 'title',
+                })}
+              </Menu.Item>
+            )}
           </Menu>
         </Popup.Content>
       </>
@@ -255,6 +261,8 @@ ActionsStep.propTypes = {
   onLabelMove: PropTypes.func.isRequired,
   onLabelDelete: PropTypes.func.isRequired,
   onClose: PropTypes.func.isRequired,
+  isCurrentUserManager: PropTypes.bool.isRequired,
+  member_card_deletion_enabled: PropTypes.bool.isRequired,
 };
 
 export default ActionsStep;

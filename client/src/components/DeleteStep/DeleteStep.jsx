@@ -30,10 +30,14 @@ DeleteStep.propTypes = {
   buttonContent: PropTypes.string.isRequired,
   onConfirm: PropTypes.func.isRequired,
   onBack: PropTypes.func,
+  isCurrentUserManager: PropTypes.bool,
+  member_card_deletion_enabled: PropTypes.bool,
 };
 
 DeleteStep.defaultProps = {
   onBack: undefined,
+  isCurrentUserManager: false,
+  member_card_deletion_enabled: false,
 };
 
 export default DeleteStep;

@@ -11,7 +11,7 @@ services:
       - project-background-images:/app/public/project-background-images
       - attachments:/app/private/attachments
     ports:
-      - 80:1337
+      - 1337:1337
     environment:
       - BASE_URL=${BASE_URL:-https://planka.homeclean.co.uk}
       - DATABASE_URL=postgresql://user:password@postgres:5432/planka
@@ -80,6 +80,8 @@ services:
       - POSTGRES_USER=user
       - POSTGRES_PASSWORD=password
       - POSTGRES_HOST_AUTH_METHOD=trust
+    ports:
+      - 5432:5432
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d planka"]
       interval: 10s

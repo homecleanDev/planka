@@ -41,6 +41,13 @@ module.exports = {
       throw Errors.CARD_NOT_FOUND; // Forbidden
     }
 
+    const project = await Project.findOne(card.projectId);
+    const isProjectManager = await sails.helpers.users.isProjectManager(currentUser.id, project.id);
+
+    if (!isProjectManager && !project.member_card_deletion_enabled) {
+      throw Errors.NOT_ENOUGH_RIGHTS;
+    }
+
     if (boardMembership.role !== BoardMembership.Roles.EDITOR) {
       throw Errors.NOT_ENOUGH_RIGHTS;
     }

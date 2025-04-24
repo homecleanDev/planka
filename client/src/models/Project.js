@@ -15,6 +15,9 @@ export default class extends BaseModel {
     isBackgroundImageUpdating: attr({
       getDefault: () => false,
     }),
+    member_card_deletion_enabled: attr({
+      getDefault: () => false,
+    }),
     managerUsers: many({
       to: 'User',
       through: 'ProjectManager',

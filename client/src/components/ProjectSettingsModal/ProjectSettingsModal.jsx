@@ -10,6 +10,7 @@ import GeneralPane from './GeneralPane';
 const ProjectSettingsModal = React.memo(
   ({
     name,
+    member_card_deletion_enabled,
     background,
     backgroundImage,
     isBackgroundImageUpdating,
@@ -44,7 +45,7 @@ const ProjectSettingsModal = React.memo(
         menuItem: t('common.general', {
           context: 'title',
         }),
-        render: () => <GeneralPane name={name} onUpdate={onUpdate} onDelete={onDelete} />,
+        render: () => <GeneralPane name={name} onUpdate={onUpdate} onDelete={onDelete} member_card_deletion_enabled={member_card_deletion_enabled} />,
       },
       {
         menuItem: t('common.managers', {
@@ -94,6 +95,7 @@ const ProjectSettingsModal = React.memo(
 
 ProjectSettingsModal.propTypes = {
   name: PropTypes.string.isRequired,
+  member_card_deletion_enabled: PropTypes.bool.isRequired,
   /* eslint-disable react/forbid-prop-types */
   background: PropTypes.object,
   backgroundImage: PropTypes.object,

@@ -3,7 +3,7 @@ import pickBy from 'lodash/pickBy';
 import React, { useCallback, useMemo, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
-import { Button, Form, Input } from 'semantic-ui-react';
+import { Button, Form, Input, Checkbox } from 'semantic-ui-react';
 
 import { useForm } from '../../../hooks';
 
@@ -14,8 +14,14 @@ const InformationEdit = React.memo(({ defaultData, onUpdate }) => {
 
   const [data, handleFieldChange] = useForm(() => ({
     name: '',
+    member_card_deletion_enabled: false,
     ...pickBy(defaultData),
   }));
+
+  const handleCheckboxChange = useCallback((e, { checked }) => {
+    console.log('checked', checked);
+    handleFieldChange(e, { name: 'member_card_deletion_enabled', value: checked });
+  }, [handleFieldChange]);
 
   const cleanData = useMemo(
     () => ({
@@ -47,6 +53,14 @@ const InformationEdit = React.memo(({ defaultData, onUpdate }) => {
         className={styles.field}
         onChange={handleFieldChange}
       />
+      <div className={styles.checkbox}>
+        <Checkbox
+          label="Allow member to delete card or list"
+          name="member_card_deletion_enabled"
+          checked={data.member_card_deletion_enabled}
+          onChange={handleCheckboxChange}
+        />
+      </div>
       <Button positive disabled={dequal(cleanData, defaultData)} content={t('action.save')} />
     </Form>
   );

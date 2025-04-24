@@ -8,13 +8,14 @@ import ProjectSettingsModal from '../components/ProjectSettingsModal';
 const mapStateToProps = (state) => {
   const users = selectors.selectUsers(state);
 
-  const { name, background, backgroundImage, isBackgroundImageUpdating } =
+  const { name, background, backgroundImage, isBackgroundImageUpdating, member_card_deletion_enabled } =
     selectors.selectCurrentProject(state);
 
   const managers = selectors.selectManagersForCurrentProject(state);
 
   return {
     name,
+    member_card_deletion_enabled,
     background,
     backgroundImage,
     isBackgroundImageUpdating,
