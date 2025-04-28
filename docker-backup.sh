@@ -17,23 +17,23 @@ docker exec -t $PLANKA_DOCKER_CONTAINER_POSTGRES pg_dumpall -c -U postgres > $BA
 echo "Success!"
 
 # Export Docker Voumes
-echo -n "Exporting user-avatars ... "
-docker run --rm --volumes-from $PLANKA_DOCKER_CONTAINER_PLANKA -v $(pwd)/$BACKUP_DATETIME-backup:/backup ubuntu cp -r /app/public/user-avatars /backup/user-avatars
-echo "Success!"
-echo -n "Exporting project-background-images ... "
-docker run --rm --volumes-from $PLANKA_DOCKER_CONTAINER_PLANKA -v $(pwd)/$BACKUP_DATETIME-backup:/backup ubuntu cp -r /app/public/project-background-images /backup/project-background-images
-echo "Success!"
-echo -n "Exporting attachments ... "
-docker run --rm --volumes-from $PLANKA_DOCKER_CONTAINER_PLANKA -v $(pwd)/$BACKUP_DATETIME-backup:/backup ubuntu cp -r /app/private/attachments /backup/attachments
-echo "Success!"
+# echo -n "Exporting user-avatars ... "
+# docker run --rm --volumes-from $PLANKA_DOCKER_CONTAINER_PLANKA -v $(pwd)/$BACKUP_DATETIME-backup:/backup ubuntu cp -r /app/public/user-avatars /backup/user-avatars
+# echo "Success!"
+# echo -n "Exporting project-background-images ... "
+# docker run --rm --volumes-from $PLANKA_DOCKER_CONTAINER_PLANKA -v $(pwd)/$BACKUP_DATETIME-backup:/backup ubuntu cp -r /app/public/project-background-images /backup/project-background-images
+# echo "Success!"
+# echo -n "Exporting attachments ... "
+# docker run --rm --volumes-from $PLANKA_DOCKER_CONTAINER_PLANKA -v $(pwd)/$BACKUP_DATETIME-backup:/backup ubuntu cp -r /app/private/attachments /backup/attachments
+# echo "Success!"
 
 # Create tgz
 echo -n "Creating final tarball $BACKUP_DATETIME-backup.tgz ... "
 tar -czf $BACKUP_DATETIME-backup.tgz \
     $BACKUP_DATETIME-backup/postgres.sql \
-    $BACKUP_DATETIME-backup/user-avatars \
-    $BACKUP_DATETIME-backup/project-background-images \
-    $BACKUP_DATETIME-backup/attachments
+    # $BACKUP_DATETIME-backup/user-avatars \
+    # $BACKUP_DATETIME-backup/project-background-images \
+    # $BACKUP_DATETIME-backup/attachments
 echo "Success!"
 
 #Remove source files
