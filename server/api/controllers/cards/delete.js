@@ -32,6 +32,8 @@ module.exports = {
       .getProjectPath(inputs.id)
       .intercept('pathNotFound', () => Errors.CARD_NOT_FOUND);
 
+    console.log('Card object:', card);
+
     const boardMembership = await BoardMembership.findOne({
       boardId: card.boardId,
       userId: currentUser.id,
@@ -41,7 +43,16 @@ module.exports = {
       throw Errors.CARD_NOT_FOUND; // Forbidden
     }
 
-    const project = await Project.findOne(card.projectId);
+    const board = await Board.findOne({ id: card.boardId });
+    if (!board) {
+      throw Errors.CARD_NOT_FOUND;
+    }
+
+    const project = await Project.findOne({ id: board.projectId });
+    if (!project) {
+      throw Errors.CARD_NOT_FOUND;
+    }
+
     const isProjectManager = await sails.helpers.users.isProjectManager(currentUser.id, project.id);
 
     if (!isProjectManager && !project.member_card_deletion_enabled) {
