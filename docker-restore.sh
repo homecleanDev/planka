@@ -29,17 +29,6 @@ echo -n "Importing postgres database ... "
 cat $PLANKA_BACKUP_ARCHIVE/postgres.sql | docker exec -i $PLANKA_DOCKER_CONTAINER_POSTGRES psql -U user -d planka
 echo "Success!"
 
-# Restore Docker Volumes
-echo -n "Importing user-avatars ... "
-docker run --rm --volumes-from $PLANKA_DOCKER_CONTAINER_PLANKA -v $(pwd)/$PLANKA_BACKUP_ARCHIVE:/backup ubuntu cp -rf /backup/user-avatars /app/public/
-echo "Success!"
-echo -n "Importing project-background-images ... "
-docker run --rm --volumes-from $PLANKA_DOCKER_CONTAINER_PLANKA -v $(pwd)/$PLANKA_BACKUP_ARCHIVE:/backup ubuntu cp -rf /backup/project-background-images /app/public/
-echo "Success!"
-echo -n "Importing attachments ... "
-docker run --rm --volumes-from $PLANKA_DOCKER_CONTAINER_PLANKA -v $(pwd)/$PLANKA_BACKUP_ARCHIVE:/backup ubuntu cp -rf /backup/attachments /app/private/
-echo "Success!"
-
 echo -n "Cleaning up temporary files and folders ... "
 rm -r $PLANKA_BACKUP_ARCHIVE
 echo "Success!"
