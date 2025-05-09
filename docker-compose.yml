@@ -10,8 +10,8 @@ services:
       - user-avatars:/app/public/user-avatars
       - project-background-images:/app/public/project-background-images
       - attachments:/app/private/attachments
-    ports:
-      - 1337:1337
+    expose:
+      - "1337"
     environment:
       - BASE_URL=${BASE_URL:-https://planka.homeclean.co.uk}
       - DATABASE_URL=postgresql://user:password@postgres:5432/planka
@@ -26,6 +26,9 @@ services:
       - SMTP_USER=${SMTP_USER}
       - SMTP_PASSWORD=${SMTP_PASSWORD}
       - SMTP_FROM=${SMTP_FROM}
+      - VIRTUAL_HOST=${VIRTUAL_HOST}
+      - LETSENCRYPT_HOST=${LETSENCRYPT_HOST}
+      - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL}
 
       # - TRUST_PROXY=0
       # - TOKEN_EXPIRES_IN=365 # In days
@@ -87,6 +90,35 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  nginx-proxy:
+    image: jwilder/nginx-proxy
+    container_name: nginx-proxy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./certs:/etc/nginx/certs
+      - ./vhost.d:/etc/nginx/vhost.d
+      - ./html:/usr/share/nginx/html
+      - ./conf.d:/etc/nginx/conf.d
+    depends_on:
+      - server
+      - client
+
+  letsencrypt:
+    image: jrcs/letsencrypt-nginx-proxy-companion
+    container_name: nginx-proxy-le
+    restart: always
+    environment:
+      - NGINX_PROXY_CONTAINER=nginx-proxy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./certs:/etc/nginx/certs
+      - ./vhost.d:/etc/nginx/vhost.d
+      - ./html:/usr/share/nginx/html
 
 volumes:
   user-avatars:
