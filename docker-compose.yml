@@ -104,9 +104,6 @@ services:
       - ./vhost.d:/etc/nginx/vhost.d
       - ./html:/usr/share/nginx/html
       - ./conf.d:/etc/nginx/conf.d
-    depends_on:
-      - server
-      - client
 
   letsencrypt:
     image: jrcs/letsencrypt-nginx-proxy-companion
