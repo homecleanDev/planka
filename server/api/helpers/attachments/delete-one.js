@@ -1,18 +1,10 @@
 const path = require('path');
 const rimraf = require('rimraf');
-const s3 = require('../s3');
+const s3Helper = require('../s3');
 
 module.exports = {
   inputs: {
     record: {
-      type: 'ref',
-      required: true,
-    },
-    board: {
-      type: 'ref',
-      required: true,
-    },
-    card: {
       type: 'ref',
       required: true,
     },
@@ -22,41 +14,45 @@ module.exports = {
   },
 
   async fn(inputs) {
-    if (inputs.record.id === inputs.card.coverAttachmentId) {
-      await sails.helpers.cards.updateOne.with({
-        record: inputs.card,
-        values: {
-          coverAttachmentId: null,
-        },
-        request: inputs.request,
-      });
+    const s3 = await s3Helper.fn();
+
+    // Delete main file
+    const mainKey = `attachments/${inputs.record.dirname}/${inputs.record.filename}`;
+    try {
+      await s3.deleteFile(mainKey);
+    } catch (error) {
+      console.warn('Failed to delete main file:', error);
     }
 
-    const attachment = await Attachment.archiveOne(inputs.record.id);
-
-    if (attachment) {
+    // Delete thumbnail if it exists
+    if (inputs.record.image && inputs.record.image.thumbnailsExtension) {
+      const thumbnailKey = `attachments/${inputs.record.dirname}/thumbnails/cover-256.${inputs.record.image.thumbnailsExtension}`;
       try {
-        // Delete original file from S3
-        await s3.deleteFile(`attachments/${attachment.dirname}/${attachment.filename}`);
-
-        // Delete thumbnail from S3 if it exists
-        if (attachment.image) {
-          await s3.deleteFile(
-            `attachments/${attachment.dirname}/thumbnails/cover-256.${attachment.image.thumbnailsExtension}`,
-          );
-        }
+        await s3.deleteFile(thumbnailKey);
       } catch (error) {
-        console.warn(error.stack); // eslint-disable-line no-console
+        console.warn('Failed to delete thumbnail:', error);
       }
+    }
 
-      sails.sockets.broadcast(
-        `board:${inputs.board.id}`,
-        'attachmentDelete',
-        {
-          item: attachment,
-        },
-        inputs.request,
-      );
+    const attachment = await Attachment.destroyOne(inputs.record.id);
+
+    if (!attachment) {
+      return null;
+    }
+
+    if (inputs.request) {
+      // Get the card to find the board ID
+      const card = await Card.findOne(inputs.record.cardId);
+      if (card) {
+        sails.sockets.broadcast(
+          `board:${card.boardId}`,
+          'attachmentDelete',
+          {
+            item: attachment,
+          },
+          inputs.request,
+        );
+      }
     }
 
     return attachment;

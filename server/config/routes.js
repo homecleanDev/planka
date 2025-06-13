@@ -68,6 +68,7 @@ module.exports.routes = {
   'DELETE /api/tasks/:id': 'tasks/delete',
 
   'POST /api/cards/:cardId/attachments': 'attachments/create',
+  'POST /api/cards/:cardId/attachments/upload-url': 'attachments/get-upload-url',
   'PATCH /api/attachments/:id': 'attachments/update',
   'DELETE /api/attachments/:id': 'attachments/delete',
 

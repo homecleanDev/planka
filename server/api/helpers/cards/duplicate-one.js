@@ -99,6 +99,38 @@ module.exports = {
     }));
     const nextTasks = await Task.createEach(tasksValues).fetch();
 
+    // Duplicate comments
+    const comments = await sails.helpers.cards.getActions(inputs.record.id, undefined, true);
+    const commentActions = comments
+      .filter(action => action.type === Action.Types.COMMENT_CARD)
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    const nextComments = await Promise.all(
+      commentActions.map(async (comment) => {
+        return Action.create({
+          cardId: card.id,
+          userId: comment.userId,
+          type: Action.Types.COMMENT_CARD,
+          data: {
+            text: comment.data.text,
+          },
+        }).fetch();
+      })
+    );
+
+    // Duplicate attachments
+    const attachments = await sails.helpers.cards.getAttachments(inputs.record.id);
+    const nextAttachments = await Promise.all(
+      attachments.map(async (attachment) => {
+        return Attachment.create({
+          cardId: card.id,
+          creatorUserId: values.creatorUser.id,
+          name: attachment.name,
+          path: attachment.path,
+          image: attachment.image,
+        }).fetch();
+      })
+    );
+
     sails.sockets.broadcast(
       `board:${card.boardId}`,
       'cardCreate',
@@ -139,6 +171,8 @@ module.exports = {
       cardMemberships: nextCardMemberships,
       cardLabels: nextCardLabels,
       tasks: nextTasks,
+      comments: nextComments,
+      attachments: nextAttachments,
     };
   },
 };

@@ -44,13 +44,23 @@ module.exports = {
         await s3Client.send(command);
       },
 
-      async getSignedUrl(key, expiresIn = 3600) {
+      async generatePresignedUrl(key, contentType, expiresIn = 3600) {
         const command = new PutObjectCommand({
           Bucket: process.env.AWS_BUCKET,
           Key: key,
+          ContentType: contentType,
         });
 
-        return getSignedUrl(s3Client, command, { expiresIn });
+        const url = await getSignedUrl(s3Client, command, {
+          expiresIn,
+          signableHeaders: new Set(['host']),
+        });
+
+        return url;
+      },
+
+      async getSignedUrl(key, expiresIn = 3600) {
+        return this.generatePresignedUrl(key, null, expiresIn);
       },
     };
   },

@@ -13,14 +13,49 @@ export function* createAttachment(cardId, data) {
     actions.createAttachment({
       cardId,
       id: localId,
-      name: data.file.name,
+      name: data.file ? data.file.name : data.name,
     }),
   );
 
   let attachment;
   try {
-    ({ item: attachment } = yield call(request, api.createAttachment, cardId, data, localId));
+    if (data.file) {
+      // Get pre-signed URL for direct upload
+      const { item: uploadData } = yield call(request, api.getUploadUrl, cardId, {
+        filename: data.file.name,
+        contentType: data.file.type,
+      });
+
+      // Upload file directly to S3
+      const response = yield call(fetch, uploadData.presignedUrl, {
+        method: 'PUT',
+        body: data.file,
+        headers: {
+          'Content-Type': data.file.type,
+        },
+        mode: 'cors',
+      });
+
+      if (!response.ok) {
+        const errorText = yield response.text();
+        throw new Error(`Upload failed with status ${response.status}: ${errorText}`);
+      }
+
+      // Create attachment record
+      ({ item: attachment } = yield call(request, api.create, cardId, {
+        key: uploadData.key,
+        dirname: uploadData.dirname,
+        filename: uploadData.filename,
+        name: data.file.name,
+      }, localId));
+    } else {
+      // Legacy file upload through server
+      ({ item: attachment } = yield call(request, api.create, cardId, data, localId));
+    }
   } catch (error) {
+    console.log('Error creating attachment', {
+      error,
+    });
     yield put(actions.createAttachment.failure(localId, error));
     return;
   }
@@ -65,7 +100,7 @@ export function* deleteAttachment(id) {
 
   let attachment;
   try {
-    ({ item: attachment } = yield call(request, api.deleteAttachment, id));
+    ({ item: attachment } = yield call(request, api.deleteOne, id));
   } catch (error) {
     yield put(actions.deleteAttachment.failure(id, error));
     return;

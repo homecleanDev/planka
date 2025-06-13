@@ -5,24 +5,40 @@ import socket from './socket';
 
 export const transformAttachment = (attachment) => ({
   ...attachment,
+  coverUrl: attachment.url,
   createdAt: new Date(attachment.createdAt),
 });
 
 /* Actions */
 
-const createAttachment = (cardId, data, requestId, headers) =>
-  http.post(`/cards/${cardId}/attachments?requestId=${requestId}`, data, headers).then((body) => ({
+export const getUploadUrl = (cardId, data, headers) =>
+  http.post(`/cards/${cardId}/attachments/upload-url`, data, headers).then((body) => ({
+    ...body,
+  }));
+
+export const create = (cardId, data, requestId, headers) => {
+  if (data instanceof FormData) {
+    // Legacy file upload through server
+    return http.post(`/cards/${cardId}/attachments?requestId=${requestId}`, data, headers).then((body) => ({
+      ...body,
+      item: transformAttachment(body.item),
+    }));
+  }
+
+  // Direct S3 upload
+  return http.post(`/cards/${cardId}/attachments?requestId=${requestId}`, data, headers).then((body) => ({
     ...body,
     item: transformAttachment(body.item),
   }));
+};
 
-const updateAttachment = (id, data, headers) =>
+export const update = (id, data, headers) =>
   socket.patch(`/attachments/${id}`, data, headers).then((body) => ({
     ...body,
     item: transformAttachment(body.item),
   }));
 
-const deleteAttachment = (id, headers) =>
+export const deleteOne = (id, headers) =>
   socket.delete(`/attachments/${id}`, undefined, headers).then((body) => ({
     ...body,
     item: transformAttachment(body.item),
@@ -42,9 +58,10 @@ const makeHandleAttachmentUpdate = makeHandleAttachmentCreate;
 const makeHandleAttachmentDelete = makeHandleAttachmentCreate;
 
 export default {
-  createAttachment,
-  updateAttachment,
-  deleteAttachment,
+  getUploadUrl,
+  create,
+  update,
+  deleteOne,
   makeHandleAttachmentCreate,
   makeHandleAttachmentUpdate,
   makeHandleAttachmentDelete,
