@@ -13,6 +13,57 @@ import styles from './Attachments.module.scss';
 
 const INITIALLY_VISIBLE = 4;
 
+function GalleryImageWithDimensions({ item, isPdf, isVisible, canEdit, handleCoverSelect, handleCoverDeselect, handleUpdate, handleDelete, ...itemProps }) {
+  const [dimensions, setDimensions] = React.useState({ width: null, height: null });
+
+  React.useEffect(() => {
+    if (!isPdf && isImage(item.url) && !dimensions.width && !dimensions.height) {
+      const img = new window.Image();
+      img.src = item.url;
+      img.onload = () => {
+        setDimensions({ width: img.naturalWidth, height: img.naturalHeight });
+      };
+    }
+  }, [item.url, isPdf, dimensions.width, dimensions.height]);
+
+  if (isImage(item.url) && (!dimensions.width || !dimensions.height)) {
+    return null; // or a loader
+  }
+
+  return (
+    <GalleryItem
+      {...itemProps}
+      key={item.id}
+      original={item.url}
+      caption={item.name}
+      width={isImage(item.url) ? dimensions.width : undefined}
+      height={isImage(item.url) ? dimensions.height : undefined}
+    >
+      {({ ref, open }) =>
+        isVisible ? (
+          <Item
+            ref={ref}
+            name={item.name}
+            url={item.url}
+            coverUrl={item.coverUrl}
+            createdAt={item.createdAt}
+            isCover={item.isCover}
+            isPersisted={item.isPersisted}
+            canEdit={canEdit}
+            onClick={item.image || isPdf || isImage(item.coverUrl) ? open : undefined}
+            onCoverSelect={() => handleCoverSelect(item.id)}
+            onCoverDeselect={handleCoverDeselect}
+            onUpdate={(data) => handleUpdate(item.id, data)}
+            onDelete={() => handleDelete(item.id)}
+          />
+        ) : (
+          <span ref={ref} />
+        )
+      }
+    </GalleryItem>
+  );
+}
+
 const Attachments = React.memo(
   ({ items, canEdit, onUpdate, onDelete, onCoverUpdate, onGalleryOpen, onGalleryClose }) => {
     const [t] = useTranslation();
@@ -60,7 +111,6 @@ const Attachments = React.memo(
 
     const galleryItemsNode = items.map((item, index) => {
       const isPdf = item.url && item.url.endsWith('.pdf');
-
       let props;
       if (item.image) {
         props = item.image;
@@ -80,38 +130,20 @@ const Attachments = React.memo(
           ),
         };
       }
-
       const isVisible = isAllVisible || index < INITIALLY_VISIBLE;
-
       return (
-        <GalleryItem
-          {...props} // eslint-disable-line react/jsx-props-no-spreading
+        <GalleryImageWithDimensions
           key={item.id}
-          original={item.url}
-          caption={item.name}
-        >
-          {({ ref, open }) =>
-            isVisible ? (
-              <Item
-                ref={ref}
-                name={item.name}
-                url={item.url}
-                coverUrl={item.coverUrl}
-                createdAt={item.createdAt}
-                isCover={item.isCover}
-                isPersisted={item.isPersisted}
-                canEdit={canEdit}
-                onClick={item.image || isPdf || isImage(item.coverUrl) ? open : undefined}
-                onCoverSelect={() => handleCoverSelect(item.id)}
-                onCoverDeselect={handleCoverDeselect}
-                onUpdate={(data) => handleUpdate(item.id, data)}
-                onDelete={() => handleDelete(item.id)}
-              />
-            ) : (
-              <span ref={ref} />
-            )
-          }
-        </GalleryItem>
+          item={item}
+          isPdf={isPdf}
+          isVisible={isVisible}
+          {...props}
+          canEdit={canEdit}
+          handleCoverSelect={handleCoverSelect}
+          handleCoverDeselect={handleCoverDeselect}
+          handleUpdate={handleUpdate}
+          handleDelete={handleDelete}
+        />
       );
     });
 
