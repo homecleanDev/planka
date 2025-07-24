@@ -7,10 +7,12 @@ module.exports = {
   },
 
   async fn(inputs) {
-    const fieldName = inputs.emailOrUsername.includes('@') ? 'email' : 'username';
+    const { emailOrUsername } = inputs;
 
-    return sails.helpers.users.getOne({
-      [fieldName]: inputs.emailOrUsername.toLowerCase(),
+    return sails.helpers.users.getOne.with({
+      criteria: {
+        or: [{ email: emailOrUsername.toLowerCase() }, { username: emailOrUsername }],
+      },
     });
   },
 };

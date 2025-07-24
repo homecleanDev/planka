@@ -118,7 +118,7 @@ module.exports = {
       if (values.user) {
         notifiableUser = values.user;
       } else {
-        notifiableUser = await sails.helpers.users.getOne(notification.userId);
+        notifiableUser = await sails.helpers.users.getOne.with({ criteria: notification.userId });
       }
 
       buildAndSendEmail(inputs.user, inputs.board, inputs.card, values.action, notifiableUser);

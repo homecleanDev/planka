@@ -80,18 +80,23 @@ module.exports = {
       action.userId,
     );
 
+    const allUserIds = (subscriptionUserIds || []).concat(inputs.notifyUserIds || []);
+
     await Promise.all(
-      subscriptionUserIds.concat(notifyUserIds).map(async (userId) =>
-        sails.helpers.notifications.createOne.with({
-          values: {
-            userId,
-            action,
-          },
-          user: values.user,
-          board: inputs.board,
-          card: values.card,
+      allUserIds
+        .filter(Boolean) // Filter out null/undefined user IDs from the combined array
+        .map(async (userId) => {
+          const user = await sails.helpers.users.getOne.with({ criteria: userId });
+          return sails.helpers.notifications.createOne.with({
+            values: {
+              user,
+              action,
+            },
+            user: values.user,
+            board: inputs.board,
+            card: values.card,
+          });
         }),
-      ),
     );
 
     if (sails.config.custom.slackBotToken) {

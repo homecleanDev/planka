@@ -79,11 +79,17 @@ module.exports = {
     });
 
     if (identityProviderUser) {
-      user = await sails.helpers.users.getOne(identityProviderUser.userId);
+      sails.log.verbose(`Found existing user by email: ${values.email}`);
+
+      user = await sails.helpers.users.getOne.with({ criteria: identityProviderUser.userId });
     } else {
-      // If no IDP/User mapping exists, search for the user by email.
-      user = await sails.helpers.users.getOne({
-        email: values.email.toLowerCase(),
+      sails.log.verbose(`Found existing user by email through OIDC: ${values.email}`);
+
+      user = await sails.helpers.users.getOne.with({
+        criteria: {
+          email: values.email.toLowerCase(),
+          isAdmin: false,
+        },
       });
 
       // Otherwise, create a new user.
