@@ -7,6 +7,7 @@ import api from '../../../api';
 
 export function* fetchActivities(cardId) {
   const { isActivitiesDetailsVisible } = yield select(selectors.selectCardById, cardId);
+  const withDetails = isActivitiesDetailsVisible !== false;
   const lastId = yield select(selectors.selectLastActivityIdByCardId, cardId);
 
   yield put(actions.fetchActivities(cardId));
@@ -20,7 +21,7 @@ export function* fetchActivities(cardId) {
       included: { users },
     } = yield call(request, api.getActivities, cardId, {
       beforeId: lastId,
-      withDetails: isActivitiesDetailsVisible,
+      withDetails,
     }));
   } catch (error) {
     yield put(actions.fetchActivities.failure(cardId, error));

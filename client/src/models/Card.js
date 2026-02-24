@@ -312,7 +312,7 @@ export default class extends BaseModel {
       isInCard: true,
     };
 
-    if (!this.isActivitiesDetailsVisible) {
+    if (this.isActivitiesDetailsVisible === false) {
       filter.type = ActivityTypes.COMMENT_CARD;
     }
 
