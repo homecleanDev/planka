@@ -33,6 +33,9 @@ export default class extends BaseModel {
     isActivitiesDetailsVisible: attr({
       getDefault: () => true,
     }),
+    isActivitiesDetailsLoaded: attr({
+      getDefault: () => false,
+    }),
     isActivitiesDetailsFetching: attr({
       getDefault: () => false,
     }),
@@ -270,6 +273,7 @@ export default class extends BaseModel {
         Card.withId(payload.cardId).update({
           isActivitiesFetching: false,
           isAllActivitiesFetched: payload.activities.length < Config.ACTIVITIES_LIMIT,
+          ...(payload.withDetails ? { isActivitiesDetailsLoaded: true } : {}),
         });
 
         break;
@@ -289,6 +293,7 @@ export default class extends BaseModel {
         cardModel.update({
           isAllActivitiesFetched: payload.activities.length < Config.ACTIVITIES_LIMIT,
           isActivitiesDetailsFetching: false,
+          isActivitiesDetailsLoaded: true,
         });
 
         cardModel.deleteActivities();

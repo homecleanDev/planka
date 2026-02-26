@@ -7,12 +7,13 @@ const fetchActivities = (cardId) => ({
   },
 });
 
-fetchActivities.success = (cardId, activities, users) => ({
+fetchActivities.success = (cardId, activities, users, withDetails) => ({
   type: ActionTypes.ACTIVITIES_FETCH__SUCCESS,
   payload: {
     cardId,
     activities,
     users,
+    withDetails,
   },
 });
 

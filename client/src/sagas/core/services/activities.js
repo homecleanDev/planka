@@ -6,29 +6,35 @@ import actions from '../../../actions';
 import api from '../../../api';
 
 export function* fetchActivities(cardId) {
-  const { isActivitiesDetailsVisible } = yield select(selectors.selectCardById, cardId);
+  const { isActivitiesDetailsVisible, isActivitiesDetailsLoaded } = yield select(
+    selectors.selectCardById,
+    cardId,
+  );
   const withDetails = isActivitiesDetailsVisible !== false;
   const lastId = yield select(selectors.selectLastActivityIdByCardId, cardId);
+  const shouldSkipBeforeId = withDetails && !isActivitiesDetailsLoaded;
 
   yield put(actions.fetchActivities(cardId));
 
   let activities;
   let users;
 
+  const data = {
+    withDetails,
+    ...(!shouldSkipBeforeId && lastId ? { beforeId: lastId } : {}),
+  };
+
   try {
     ({
       items: activities,
       included: { users },
-    } = yield call(request, api.getActivities, cardId, {
-      beforeId: lastId,
-      withDetails,
-    }));
+    } = yield call(request, api.getActivities, cardId, data));
   } catch (error) {
     yield put(actions.fetchActivities.failure(cardId, error));
     return;
   }
 
-  yield put(actions.fetchActivities.success(cardId, activities, users));
+  yield put(actions.fetchActivities.success(cardId, activities, users, withDetails));
 }
 
 export function* fetchActivitiesInCurrentCard() {
