@@ -28,6 +28,7 @@ const mapStateToProps = (state) => {
     isAllActivitiesFetched,
     isActivitiesDetailsVisible,
     isActivitiesDetailsFetching,
+    isActivitiesDetailsLoaded,
     boardId,
     listId,
   } = selectors.selectCurrentCard(state);
@@ -56,6 +57,7 @@ const mapStateToProps = (state) => {
     isAllActivitiesFetched,
     isActivitiesDetailsVisible,
     isActivitiesDetailsFetching,
+    isActivitiesDetailsLoaded,
     listId,
     boardId,
     projectId,

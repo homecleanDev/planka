@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
 import { Button, Comment, Icon, Loader, Visibility } from 'semantic-ui-react';
@@ -16,6 +16,7 @@ const Activities = React.memo(
     isAllFetched,
     isDetailsVisible,
     isDetailsFetching,
+    isDetailsLoaded,
     canEdit,
     canEditAllComments,
     onFetch,
@@ -44,6 +45,14 @@ const Activities = React.memo(
       },
       [onCommentDelete],
     );
+
+    useEffect(() => {
+      if (!isDetailsVisible || isDetailsLoaded || isFetching || isDetailsFetching) {
+        return;
+      }
+
+      onFetch();
+    }, [isDetailsVisible, isDetailsLoaded, isFetching, isDetailsFetching, onFetch]);
 
     return (
       <div className={styles.contentModule}>
@@ -102,6 +111,7 @@ Activities.propTypes = {
   isAllFetched: PropTypes.bool.isRequired,
   isDetailsVisible: PropTypes.bool.isRequired,
   isDetailsFetching: PropTypes.bool.isRequired,
+  isDetailsLoaded: PropTypes.bool.isRequired,
   canEdit: PropTypes.bool.isRequired,
   canEditAllComments: PropTypes.bool.isRequired,
   onFetch: PropTypes.func.isRequired,

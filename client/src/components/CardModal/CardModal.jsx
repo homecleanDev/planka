@@ -38,6 +38,7 @@ const CardModal = React.memo(
     isAllActivitiesFetched,
     isActivitiesDetailsVisible,
     isActivitiesDetailsFetching,
+    isActivitiesDetailsLoaded,
     boardId,
     listId,
     projectId,
@@ -418,6 +419,7 @@ const CardModal = React.memo(
               isAllFetched={isAllActivitiesFetched}
               isDetailsVisible={isActivitiesDetailsVisible}
               isDetailsFetching={isActivitiesDetailsFetching}
+              isDetailsLoaded={isActivitiesDetailsLoaded}
               canEdit={canEditCommentActivities}
               canEditAllComments={canEditAllCommentActivities}
               onFetch={onActivitiesFetch}
@@ -556,6 +558,7 @@ CardModal.propTypes = {
   isAllActivitiesFetched: PropTypes.bool.isRequired,
   isActivitiesDetailsVisible: PropTypes.bool.isRequired,
   isActivitiesDetailsFetching: PropTypes.bool.isRequired,
+  isActivitiesDetailsLoaded: PropTypes.bool.isRequired,
   boardId: PropTypes.string.isRequired,
   listId: PropTypes.string.isRequired,
   projectId: PropTypes.string.isRequired,
