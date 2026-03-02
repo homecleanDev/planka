@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import { useTranslation } from 'react-i18next';
@@ -47,6 +47,8 @@ const CardModal = React.memo(
     tasks,
     attachments,
     activities,
+    cardFields,
+    projectCardFields,
     allProjectsToLists,
     allBoardMemberships,
     allLabels,
@@ -149,6 +151,34 @@ const CardModal = React.memo(
       onClose();
     }, [onDuplicate, onClose]);
 
+    const handleCardFieldUpdate = useCallback(
+      (fieldId, fieldName, value) => {
+        const existingFields = cardFields || [];
+        const index = existingFields.findIndex((field) => field.id === fieldId);
+        const nextFields = [...existingFields];
+
+        if (index === -1) {
+          nextFields.push({
+            id: fieldId,
+            name: fieldName,
+            value,
+          });
+        } else {
+          nextFields[index] = {
+            ...nextFields[index],
+            id: fieldId,
+            name: fieldName,
+            value,
+          };
+        }
+
+        onUpdate({
+          cardFields: nextFields,
+        });
+      },
+      [cardFields, onUpdate],
+    );
+
     const handleGalleryOpen = useCallback(() => {
       isGalleryOpened.current = true;
     }, []);
@@ -178,7 +208,22 @@ const CardModal = React.memo(
 
     const canDelete = isCurrentUserManager || member_card_deletion_enabled;
 
-    console.log('canDelete cardmodal', canDelete, member_card_deletion_enabled);
+    const mergedCardFields = useMemo(() => {
+      if (!projectCardFields || projectCardFields.length === 0) {
+        return [];
+      }
+
+      const fieldById = new Map((cardFields || []).map((field) => [field.id, field]));
+
+      return projectCardFields.map((field) => {
+        const cardField = fieldById.get(field.id);
+        return {
+          id: field.id,
+          name: field.name,
+          value: cardField ? cardField.value : null,
+        };
+      });
+    }, [cardFields, projectCardFields]);
     const contentNode = (
       <Grid className={styles.grid}>
         <Grid.Row className={styles.headerPadding}>
@@ -379,6 +424,49 @@ const CardModal = React.memo(
                 </div>
               </div>
             )}
+            {mergedCardFields.map(
+              (field) =>
+                (field.value || canEdit) && (
+                  <div key={field.id} className={styles.contentModule}>
+                    <div className={styles.moduleWrapper}>
+                      <Icon name="sticky note outline" className={styles.moduleIcon} />
+                      <div className={styles.moduleHeader}>{field.name}</div>
+                      {canEdit ? (
+                        <DescriptionEdit
+                          defaultValue={field.value}
+                          placeholder={t('common.enterFieldValue')}
+                          onUpdate={(value) => handleCardFieldUpdate(field.id, field.name, value)}
+                        >
+                          {field.value ? (
+                            <button
+                              type="button"
+                              className={classNames(styles.descriptionText, styles.cursorPointer)}
+                            >
+                              <Markdown linkStopPropagation linkTarget="_blank">
+                                {field.value}
+                              </Markdown>
+                            </button>
+                          ) : (
+                            <button type="button" className={styles.descriptionButton}>
+                              <span className={styles.descriptionButtonText}>
+                                {t('action.addFieldValue', {
+                                  field: field.name,
+                                })}
+                              </span>
+                            </button>
+                          )}
+                        </DescriptionEdit>
+                      ) : (
+                        <div className={styles.descriptionText}>
+                          <Markdown linkStopPropagation linkTarget="_blank">
+                            {field.value}
+                          </Markdown>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ),
+            )}
             {(tasks.length > 0 || canEdit) && (
               <div className={styles.contentModule}>
                 <div className={styles.moduleWrapper}>
@@ -568,6 +656,8 @@ CardModal.propTypes = {
   tasks: PropTypes.array.isRequired,
   attachments: PropTypes.array.isRequired,
   activities: PropTypes.array.isRequired,
+  cardFields: PropTypes.array.isRequired,
+  projectCardFields: PropTypes.array.isRequired,
   allProjectsToLists: PropTypes.array.isRequired,
   allBoardMemberships: PropTypes.array.isRequired,
   allLabels: PropTypes.array.isRequired,
@@ -610,6 +700,8 @@ CardModal.defaultProps = {
   description: undefined,
   dueDate: undefined,
   stopwatch: undefined,
+  cardFields: [],
+  projectCardFields: [],
 };
 
 export default CardModal;

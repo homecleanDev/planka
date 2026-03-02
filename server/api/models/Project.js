@@ -62,6 +62,10 @@ module.exports = {
       type: 'boolean',
       defaultsTo: false,
     },
+    cardFields: {
+      type: 'json',
+      columnName: 'card_fields',
+    },
 
     //  ╔═╗╔╦╗╔╗ ╔═╗╔╦╗╔═╗
     //  ║╣ ║║║╠╩╗║╣  ║║╚═╗

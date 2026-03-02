@@ -24,6 +24,10 @@ module.exports = {
       isNotEmptyString: true,
       allowNull: true,
     },
+    cardFields: {
+      type: 'json',
+      columnName: 'card_fields',
+    },
     dueDate: {
       type: 'ref',
       columnName: 'due_date',

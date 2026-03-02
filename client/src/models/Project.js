@@ -18,6 +18,9 @@ export default class extends BaseModel {
     member_card_deletion_enabled: attr({
       getDefault: () => false,
     }),
+    cardFields: attr({
+      getDefault: () => [],
+    }),
     managerUsers: many({
       to: 'User',
       through: 'ProjectManager',

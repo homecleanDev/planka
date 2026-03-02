@@ -34,6 +34,25 @@ const backgroundValidator = (value) => {
 
 const backgroundImageValidator = (value) => _.isNull(value);
 
+const cardFieldsValidator = (value) => {
+  if (_.isNull(value)) {
+    return true;
+  }
+
+  if (!Array.isArray(value)) {
+    return false;
+  }
+
+  return value.every(
+    (field) =>
+      _.isPlainObject(field) &&
+      _.isString(field.id) &&
+      field.id.length > 0 &&
+      _.isString(field.name) &&
+      field.name.trim().length > 0,
+  );
+};
+
 module.exports = {
   inputs: {
     id: {
@@ -56,6 +75,10 @@ module.exports = {
     member_card_deletion_enabled: {
       type: 'boolean',
       required: false,
+    },
+    cardFields: {
+      type: 'json',
+      custom: cardFieldsValidator,
     },
   },
 
@@ -80,7 +103,13 @@ module.exports = {
       throw Errors.PROJECT_NOT_FOUND; // Forbidden
     }
 
-    const values = _.pick(inputs, ['name', 'background', 'backgroundImage', 'member_card_deletion_enabled']);
+    const values = _.pick(inputs, [
+      'name',
+      'background',
+      'backgroundImage',
+      'member_card_deletion_enabled',
+      'cardFields',
+    ]);
 
     project = await sails.helpers.projects.updateOne.with({
       values,

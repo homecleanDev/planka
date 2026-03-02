@@ -1,0 +1,34 @@
+:global(#app) {
+  .text {
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #5e6c84;
+  }
+
+  .fieldRow {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .addRow {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+    margin-bottom: 1rem;
+  }
+
+  .fieldRow :global(.ui.input),
+  .addRow :global(.ui.input) {
+    flex: 1 1 auto;
+  }
+
+  .addButton {
+    white-space: nowrap;
+  }
+
+  .removeButton {
+    padding: 0 0.75rem;
+  }
+}

@@ -34,6 +34,26 @@ const stopwatchValidator = (value) => {
   return true;
 };
 
+const cardFieldsValidator = (value) => {
+  if (_.isNull(value)) {
+    return true;
+  }
+
+  if (!Array.isArray(value)) {
+    return false;
+  }
+
+  return value.every(
+    (field) =>
+      _.isPlainObject(field) &&
+      _.isString(field.id) &&
+      field.id.length > 0 &&
+      _.isString(field.name) &&
+      field.name.trim().length > 0 &&
+      (_.isNil(field.value) || _.isString(field.value)),
+  );
+};
+
 module.exports = {
   inputs: {
     listId: {
@@ -60,6 +80,10 @@ module.exports = {
     stopwatch: {
       type: 'json',
       custom: stopwatchValidator,
+    },
+    cardFields: {
+      type: 'json',
+      custom: cardFieldsValidator,
     },
   },
 
@@ -95,7 +119,21 @@ module.exports = {
       throw Errors.NOT_ENOUGH_RIGHTS;
     }
 
+    const project = await Project.findOne(board.projectId);
+    let cardFields = inputs.cardFields;
+
+    if (_.isUndefined(cardFields) && project && Array.isArray(project.cardFields)) {
+      cardFields = project.cardFields.map((field) => ({
+        ...field,
+        value: null,
+      }));
+    }
+
     const values = _.pick(inputs, ['position', 'name', 'description', 'dueDate', 'stopwatch']);
+
+    if (!_.isUndefined(cardFields)) {
+      values.cardFields = cardFields;
+    }
 
     const card = await sails.helpers.cards.createOne
       .with({

@@ -43,6 +43,26 @@ const stopwatchValidator = (value) => {
   return true;
 };
 
+const cardFieldsValidator = (value) => {
+  if (_.isNull(value)) {
+    return true;
+  }
+
+  if (!Array.isArray(value)) {
+    return false;
+  }
+
+  return value.every(
+    (field) =>
+      _.isPlainObject(field) &&
+      _.isString(field.id) &&
+      field.id.length > 0 &&
+      _.isString(field.name) &&
+      field.name.trim().length > 0 &&
+      (_.isNil(field.value) || _.isString(field.value)),
+  );
+};
+
 module.exports = {
   inputs: {
     id: {
@@ -83,6 +103,10 @@ module.exports = {
     stopwatch: {
       type: 'json',
       custom: stopwatchValidator,
+    },
+    cardFields: {
+      type: 'json',
+      custom: cardFieldsValidator,
     },
     isSubscribed: {
       type: 'boolean',
@@ -170,6 +194,7 @@ module.exports = {
       'position',
       'name',
       'description',
+      'cardFields',
       'dueDate',
       'stopwatch',
       'isSubscribed',

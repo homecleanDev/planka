@@ -14,6 +14,9 @@ export default class extends BaseModel {
     position: attr(),
     name: attr(),
     description: attr(),
+    cardFields: attr({
+      getDefault: () => [],
+    }),
     creatorUserId: oneToOne({
       to: 'User',
       as: 'creatorUser',

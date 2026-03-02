@@ -6,7 +6,8 @@ import SimpleMDE from 'react-simplemde-editor';
 
 import styles from './DescriptionEdit.module.scss';
 
-const DescriptionEdit = React.forwardRef(({ children, defaultValue, onUpdate }, ref) => {
+const DescriptionEdit = React.forwardRef(
+  ({ children, defaultValue, onUpdate, placeholder }, ref) => {
   const [t] = useTranslation();
   const [isOpened, setIsOpened] = useState(false);
   const [value, setValue] = useState(null);
@@ -94,7 +95,7 @@ const DescriptionEdit = React.forwardRef(({ children, defaultValue, onUpdate }, 
       <SimpleMDE
         value={value}
         options={mdEditorOptions}
-        placeholder={t('common.enterDescription')}
+        placeholder={placeholder || t('common.enterDescription')}
         className={styles.field}
         onKeyDown={handleFieldKeyDown}
         onChange={setValue}
@@ -104,16 +105,19 @@ const DescriptionEdit = React.forwardRef(({ children, defaultValue, onUpdate }, 
       </div>
     </Form>
   );
-});
+  },
+);
 
 DescriptionEdit.propTypes = {
   children: PropTypes.element.isRequired,
   defaultValue: PropTypes.string,
   onUpdate: PropTypes.func.isRequired,
+  placeholder: PropTypes.string,
 };
 
 DescriptionEdit.defaultProps = {
   defaultValue: undefined,
+  placeholder: undefined,
 };
 
 export default React.memo(DescriptionEdit);

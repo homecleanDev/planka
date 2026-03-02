@@ -6,6 +6,7 @@ import { Modal, Tab } from 'semantic-ui-react';
 import ManagersPane from './ManagersPane';
 import BackgroundPane from './BackgroundPane';
 import GeneralPane from './GeneralPane';
+import CardPane from './CardPane';
 
 const ProjectSettingsModal = React.memo(
   ({
@@ -14,6 +15,7 @@ const ProjectSettingsModal = React.memo(
     background,
     backgroundImage,
     isBackgroundImageUpdating,
+    cardFields,
     managers,
     allUsers,
     onUpdate,
@@ -45,7 +47,20 @@ const ProjectSettingsModal = React.memo(
         menuItem: t('common.general', {
           context: 'title',
         }),
-        render: () => <GeneralPane name={name} onUpdate={onUpdate} onDelete={onDelete} member_card_deletion_enabled={member_card_deletion_enabled} />,
+        render: () => (
+          <GeneralPane
+            name={name}
+            onUpdate={onUpdate}
+            onDelete={onDelete}
+            member_card_deletion_enabled={member_card_deletion_enabled}
+          />
+        ),
+      },
+      {
+        menuItem: t('common.card', {
+          context: 'title',
+        }),
+        render: () => <CardPane defaultFields={cardFields} onUpdate={onUpdate} />,
       },
       {
         menuItem: t('common.managers', {
@@ -99,6 +114,7 @@ ProjectSettingsModal.propTypes = {
   /* eslint-disable react/forbid-prop-types */
   background: PropTypes.object,
   backgroundImage: PropTypes.object,
+  cardFields: PropTypes.array.isRequired,
   /* eslint-enable react/forbid-prop-types */
   isBackgroundImageUpdating: PropTypes.bool.isRequired,
   /* eslint-disable react/forbid-prop-types */
@@ -116,6 +132,7 @@ ProjectSettingsModal.propTypes = {
 ProjectSettingsModal.defaultProps = {
   background: undefined,
   backgroundImage: undefined,
+  cardFields: [],
 };
 
 export default ProjectSettingsModal;
