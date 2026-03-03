@@ -91,10 +91,20 @@ const CardModal = React.memo(
     const isGalleryOpened = useRef(false);
 
     useEffect(() => {
-      if (isActivitiesDetailsVisible && !isActivitiesDetailsFetching) {
+      if (
+        isActivitiesDetailsVisible &&
+        !isActivitiesDetailsLoaded &&
+        !isActivitiesDetailsFetching
+      ) {
         onActivitiesDetailsToggle(true);
       }
-    }, [cardId, isActivitiesDetailsVisible, isActivitiesDetailsFetching, onActivitiesDetailsToggle]);
+    }, [
+      cardId,
+      isActivitiesDetailsVisible,
+      isActivitiesDetailsLoaded,
+      isActivitiesDetailsFetching,
+      onActivitiesDetailsToggle,
+    ]);
 
     const handleToggleStopwatchClick = useCallback(() => {
       onUpdate({
