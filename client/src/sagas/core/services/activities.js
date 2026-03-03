@@ -25,11 +25,20 @@ export function* fetchActivities(cardId) {
   };
 
   try {
+    console.log('[activities] request', { cardId, data });
     ({
       items: activities,
       included: { users },
     } = yield call(request, api.getActivities, cardId, data));
+    console.log('[activities] response', {
+      cardId,
+      count: activities.length,
+      firstId: activities[0]?.id,
+      lastId: activities[activities.length - 1]?.id,
+      withDetails,
+    });
   } catch (error) {
+    console.log('[activities] error', { cardId, data, error });
     yield put(actions.fetchActivities.failure(cardId, error));
     return;
   }
@@ -51,13 +60,21 @@ export function* toggleActivitiesDetails(cardId, isVisible) {
     let users;
 
     try {
+      console.log('[activities] details request', { cardId, withDetails: isVisible });
       ({
         items: activities,
         included: { users },
       } = yield call(request, api.getActivities, cardId, {
         withDetails: isVisible,
       }));
+      console.log('[activities] details response', {
+        cardId,
+        count: activities.length,
+        firstId: activities[0]?.id,
+        lastId: activities[activities.length - 1]?.id,
+      });
     } catch (error) {
+      console.log('[activities] details error', { cardId, error });
       yield put(actions.toggleActivitiesDetails.failure(cardId, error));
       return;
     }

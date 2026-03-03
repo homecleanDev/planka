@@ -19,6 +19,7 @@ const mapStateToProps = (state) => {
   const currentProject = selectors.selectCurrentProject(state);
 
   const {
+    id,
     name,
     description,
     dueDate,
@@ -49,6 +50,7 @@ const mapStateToProps = (state) => {
   }
 
   return {
+    cardId: id,
     name,
     description,
     dueDate,

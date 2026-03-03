@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import { useTranslation } from 'react-i18next';
@@ -39,6 +39,7 @@ const CardModal = React.memo(
     isActivitiesDetailsVisible,
     isActivitiesDetailsFetching,
     isActivitiesDetailsLoaded,
+    cardId,
     boardId,
     listId,
     projectId,
@@ -88,6 +89,12 @@ const CardModal = React.memo(
     const [t] = useTranslation();
 
     const isGalleryOpened = useRef(false);
+
+    useEffect(() => {
+      if (isActivitiesDetailsVisible && !isActivitiesDetailsFetching) {
+        onActivitiesDetailsToggle(true);
+      }
+    }, [cardId, isActivitiesDetailsVisible, isActivitiesDetailsFetching, onActivitiesDetailsToggle]);
 
     const handleToggleStopwatchClick = useCallback(() => {
       onUpdate({
@@ -647,6 +654,7 @@ CardModal.propTypes = {
   isActivitiesDetailsVisible: PropTypes.bool.isRequired,
   isActivitiesDetailsFetching: PropTypes.bool.isRequired,
   isActivitiesDetailsLoaded: PropTypes.bool.isRequired,
+  cardId: PropTypes.string.isRequired,
   boardId: PropTypes.string.isRequired,
   listId: PropTypes.string.isRequired,
   projectId: PropTypes.string.isRequired,
