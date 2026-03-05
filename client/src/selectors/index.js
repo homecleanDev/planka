@@ -4,6 +4,7 @@ import root from './root';
 import core from './core';
 import modals from './modals';
 import users from './users';
+import groups from './groups';
 import projects from './projects';
 import projectManagers from './project-managers';
 import boards from './boards';
@@ -21,6 +22,7 @@ export default {
   ...core,
   ...modals,
   ...users,
+  ...groups,
   ...projects,
   ...projectManagers,
   ...boards,

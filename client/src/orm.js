@@ -6,6 +6,7 @@ import {
   Board,
   BoardMembership,
   Card,
+  Group,
   Label,
   List,
   Notification,
@@ -21,6 +22,7 @@ const orm = new ORM({
 
 orm.register(
   User,
+  Group,
   Project,
   ProjectManager,
   Board,

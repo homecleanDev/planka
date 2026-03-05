@@ -17,6 +17,7 @@ export function* handleSocketReconnect() {
   let user;
   let board;
   let users;
+  let groups;
   let projects;
   let projectManagers;
   let boards;
@@ -36,6 +37,7 @@ export function* handleSocketReconnect() {
       user,
       board,
       users,
+      groups,
       projects,
       projectManagers,
       boards,
@@ -59,6 +61,7 @@ export function* handleSocketReconnect() {
       user,
       board,
       users,
+      groups,
       projects,
       projectManagers,
       boards,

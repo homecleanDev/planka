@@ -48,6 +48,12 @@ export default class extends BaseModel {
     isRoleLocked: attr(),
     isUsernameLocked: attr(),
     isDeletionLocked: attr(),
+    groups: attr({
+      getDefault: () => [],
+    }),
+    groupIds: attr({
+      getDefault: () => [],
+    }),
     deletedAt: attr(),
     createdAt: attr({
       getDefault: () => new Date(),

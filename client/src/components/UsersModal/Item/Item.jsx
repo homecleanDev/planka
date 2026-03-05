@@ -21,6 +21,9 @@ const Item = React.memo(
     isRoleLocked,
     isUsernameLocked,
     isDeletionLocked,
+    groups,
+    groupIds,
+    allGroups,
     emailUpdateForm,
     passwordUpdateForm,
     usernameUpdateForm,
@@ -64,6 +67,9 @@ const Item = React.memo(
               isLocked,
               isUsernameLocked,
               isDeletionLocked,
+              groups,
+              groupIds,
+              allGroups,
               emailUpdateForm,
               passwordUpdateForm,
               usernameUpdateForm,
@@ -99,6 +105,9 @@ Item.propTypes = {
   isRoleLocked: PropTypes.bool.isRequired,
   isUsernameLocked: PropTypes.bool.isRequired,
   isDeletionLocked: PropTypes.bool.isRequired,
+  groups: PropTypes.array.isRequired, // eslint-disable-line react/forbid-prop-types
+  groupIds: PropTypes.array.isRequired, // eslint-disable-line react/forbid-prop-types
+  allGroups: PropTypes.array.isRequired, // eslint-disable-line react/forbid-prop-types
   /* eslint-disable react/forbid-prop-types */
   emailUpdateForm: PropTypes.object.isRequired,
   passwordUpdateForm: PropTypes.object.isRequired,

@@ -25,6 +25,6 @@ module.exports = {
       criteria.deletedAt = null;
     }
 
-    return User.find(criteria).sort('id');
+    return User.find(criteria).populate('groups').sort('id');
   },
 };

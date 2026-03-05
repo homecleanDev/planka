@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
-import { Button, Divider, Dropdown, Header, Tab } from 'semantic-ui-react';
+import { Button, Divider, Dropdown, Header, Tab, Table } from 'semantic-ui-react';
 import { usePopup } from '../../../lib/popup';
 
 import locales from '../../../locales';
@@ -22,6 +22,7 @@ const AccountPane = React.memo(
     avatarUrl,
     phone,
     organization,
+    groups,
     language,
     isLocked,
     isUsernameLocked,
@@ -79,6 +80,29 @@ const AccountPane = React.memo(
           isNameEditable={!isLocked}
           onUpdate={onUpdate}
         />
+        <Divider horizontal section>
+          <Header as="h4">{t('common.yourGroups')}</Header>
+        </Divider>
+        <Table unstackable basic="very">
+          <Table.Header>
+            <Table.Row>
+              <Table.HeaderCell>{t('common.name')}</Table.HeaderCell>
+            </Table.Row>
+          </Table.Header>
+          <Table.Body>
+            {groups.length > 0 ? (
+              groups.map((group) => (
+                <Table.Row key={group.id}>
+                  <Table.Cell>{group.name}</Table.Cell>
+                </Table.Row>
+              ))
+            ) : (
+              <Table.Row>
+                <Table.Cell>-</Table.Cell>
+              </Table.Row>
+            )}
+          </Table.Body>
+        </Table>
         <Divider horizontal section>
           <Header as="h4">
             {t('common.language', {
@@ -184,6 +208,7 @@ AccountPane.propTypes = {
   avatarUrl: PropTypes.string,
   phone: PropTypes.string,
   organization: PropTypes.string,
+  groups: PropTypes.array.isRequired, // eslint-disable-line react/forbid-prop-types
   language: PropTypes.string,
   isLocked: PropTypes.bool.isRequired,
   isUsernameLocked: PropTypes.bool.isRequired,

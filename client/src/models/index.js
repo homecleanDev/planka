@@ -1,4 +1,5 @@
 import User from './User';
+import Group from './Group';
 import Project from './Project';
 import ProjectManager from './ProjectManager';
 import Board from './Board';
@@ -13,6 +14,7 @@ import Notification from './Notification';
 
 export {
   User,
+  Group,
   Project,
   ProjectManager,
   Board,

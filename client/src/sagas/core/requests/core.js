@@ -8,6 +8,11 @@ import mergeRecords from '../../../utils/merge-records';
 export function* fetchCore() {
   const { item: user } = yield call(request, api.getCurrentUser, true);
   const { items: users1 } = yield call(request, api.getUsers);
+  let groups = [];
+
+  if (user.isAdmin) {
+    ({ items: groups } = yield call(request, api.getGroups));
+  }
 
   const {
     items: projects1,
@@ -82,6 +87,7 @@ export function* fetchCore() {
     activities,
     notifications,
     users: mergeRecords(users1, users2, users3),
+    groups,
     projects: mergeRecords(projects1, projects2),
     boardMemberships: mergeRecords(boardMemberships1, boardMemberships2),
     cards: mergeRecords(cards1, cards2),

@@ -25,6 +25,9 @@ module.exports.routes = {
   'POST /api/users/:id/avatar': 'users/update-avatar',
   'DELETE /api/users/:id': 'users/delete',
 
+  'GET /api/groups': 'groups/index',
+  'POST /api/groups': 'groups/create',
+
   'GET /api/projects': 'projects/index',
   'POST /api/projects': 'projects/create',
   'GET /api/projects/:id': 'projects/show',

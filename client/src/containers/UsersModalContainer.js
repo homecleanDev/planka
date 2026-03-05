@@ -8,9 +8,11 @@ import UsersModal from '../components/UsersModal';
 const mapStateToProps = (state) => {
   const oidcConfig = selectors.selectOidcConfig(state);
   const users = selectors.selectUsersExceptCurrent(state);
+  const groups = selectors.selectGroups(state);
 
   return {
     items: users,
+    groups,
     canAdd: !oidcConfig || !oidcConfig.isEnforced,
   };
 };
@@ -26,6 +28,7 @@ const mapDispatchToProps = (dispatch) =>
       onPasswordUpdate: entryActions.updateUserPassword,
       onPasswordUpdateMessageDismiss: entryActions.clearUserPasswordUpdateError,
       onDelete: entryActions.deleteUser,
+      onGroupCreate: entryActions.createGroup,
       onClose: entryActions.closeModal,
     },
     dispatch,

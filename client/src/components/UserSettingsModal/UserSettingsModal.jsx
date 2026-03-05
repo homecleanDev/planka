@@ -15,6 +15,7 @@ const UserSettingsModal = React.memo(
     avatarUrl,
     phone,
     organization,
+    groups,
     language,
     subscribeToOwnCards,
     isLocked,
@@ -49,6 +50,7 @@ const UserSettingsModal = React.memo(
             avatarUrl={avatarUrl}
             phone={phone}
             organization={organization}
+            groups={groups}
             language={language}
             isLocked={isLocked}
             isUsernameLocked={isUsernameLocked}
@@ -107,6 +109,7 @@ UserSettingsModal.propTypes = {
   avatarUrl: PropTypes.string,
   phone: PropTypes.string,
   organization: PropTypes.string,
+  groups: PropTypes.array.isRequired, // eslint-disable-line react/forbid-prop-types
   language: PropTypes.string,
   subscribeToOwnCards: PropTypes.bool.isRequired,
   isLocked: PropTypes.bool.isRequired,

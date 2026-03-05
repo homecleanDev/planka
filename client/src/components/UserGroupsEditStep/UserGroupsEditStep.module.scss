@@ -1,0 +1,11 @@
+:global(#app) {
+  .menu {
+    margin: 8px 0;
+    max-height: 260px;
+    overflow-y: auto;
+  }
+
+  .menuItem {
+    text-transform: none;
+  }
+}

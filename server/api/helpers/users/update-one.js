@@ -45,6 +45,10 @@ module.exports = {
     request: {
       type: 'ref',
     },
+    skipBroadcast: {
+      type: 'boolean',
+      defaultsTo: false,
+    },
   },
 
   exits: {
@@ -96,7 +100,11 @@ module.exports = {
         'usernameAlreadyInUse',
       );
 
+    let fullUser = user;
+
     if (user) {
+      fullUser = await sails.helpers.users.getOne(user.id);
+
       if (
         inputs.record.avatar &&
         (!user.avatar || user.avatar.dirname !== inputs.record.avatar.dirname)
@@ -113,7 +121,7 @@ module.exports = {
           `user:${user.id}`,
           'userDelete', // TODO: introduce separate event
           {
-            item: user,
+            item: fullUser,
           },
           inputs.request,
         );
@@ -131,7 +139,7 @@ module.exports = {
         }
       }
 
-      if (!isOnlyPasswordChange) {
+      if (!isOnlyPasswordChange && !inputs.skipBroadcast) {
         /* const projectIds = await sails.helpers.users.getManagerProjectIds(user.id);
 
         const userIds = _.union(
@@ -148,7 +156,7 @@ module.exports = {
             `user:${userId}`,
             'userUpdate',
             {
-              item: user,
+              item: fullUser,
             },
             inputs.request,
           );
@@ -156,6 +164,6 @@ module.exports = {
       }
     }
 
-    return user;
+    return fullUser;
   },
 };

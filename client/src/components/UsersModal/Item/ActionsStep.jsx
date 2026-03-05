@@ -10,6 +10,7 @@ import UserInformationEditStep from '../../UserInformationEditStep';
 import UserUsernameEditStep from '../../UserUsernameEditStep';
 import UserEmailEditStep from '../../UserEmailEditStep';
 import UserPasswordEditStep from '../../UserPasswordEditStep';
+import UserGroupsEditStep from '../../UserGroupsEditStep';
 import DeleteStep from '../../DeleteStep';
 
 import styles from './ActionsStep.module.scss';
@@ -19,6 +20,7 @@ const StepTypes = {
   EDIT_USERNAME: 'EDIT_USERNAME',
   EDIT_EMAIL: 'EDIT_EMAIL',
   EDIT_PASSWORD: 'EDIT_PASSWORD',
+  EDIT_GROUP: 'EDIT_GROUP',
   DELETE: 'DELETE',
 };
 
@@ -56,6 +58,10 @@ const ActionsStep = React.memo(
 
     const handleDeleteClick = useCallback(() => {
       openStep(StepTypes.DELETE);
+    }, [openStep]);
+
+    const handleEditGroupClick = useCallback(() => {
+      openStep(StepTypes.EDIT_GROUP);
     }, [openStep]);
 
     if (step) {
@@ -108,6 +114,15 @@ const ActionsStep = React.memo(
               onClose={onClose}
             />
           );
+        case StepTypes.EDIT_GROUP:
+          return (
+            <UserGroupsEditStep
+              groups={user.allGroups}
+              currentGroupIds={user.groupIds}
+              onUpdate={onUpdate}
+              onBack={handleBack}
+            />
+          );
         case StepTypes.DELETE:
           return (
             <DeleteStep
@@ -143,6 +158,11 @@ const ActionsStep = React.memo(
                 })}
               </Menu.Item>
             )}
+            <Menu.Item className={styles.menuItem} onClick={handleEditGroupClick}>
+              {t('action.editGroup', {
+                context: 'title',
+              })}
+            </Menu.Item>
             {!user.isLocked && (
               <>
                 <Menu.Item className={styles.menuItem} onClick={handleEditEmailClick}>

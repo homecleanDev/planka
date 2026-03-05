@@ -105,19 +105,28 @@ module.exports = {
       collection: 'IdentityProviderUser',
       via: 'userId',
     },
+    groups: {
+      collection: 'Group',
+      via: 'userId',
+      through: 'UserGroup',
+    },
   },
 
   tableName: 'user_account',
 
   customToJSON() {
     const isDefaultAdmin = this.email === sails.config.custom.defaultAdminEmail;
+    const groups = (this.groups || []).map((group) => _.pick(group, ['id', 'name']));
+    const groupIds = groups.map((group) => group.id);
 
     return {
-      ..._.omit(this, ['password', 'isSso', 'avatar', 'passwordChangedAt']),
+      ..._.omit(this, ['password', 'isSso', 'avatar', 'passwordChangedAt', 'groups']),
       isLocked: this.isSso || isDefaultAdmin,
       isRoleLocked: (this.isSso && !sails.config.custom.oidcIgnoreRoles) || isDefaultAdmin,
       isUsernameLocked: (this.isSso && !sails.config.custom.oidcIgnoreUsername) || isDefaultAdmin,
       isDeletionLocked: isDefaultAdmin,
+      groups,
+      groupIds,
       avatarUrl:
         this.avatar &&
         `${sails.config.custom.userAvatarsUrl}/${this.avatar.dirname}/square-100.${this.avatar.extension}`,

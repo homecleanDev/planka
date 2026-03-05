@@ -26,6 +26,6 @@ module.exports = {
       criteria.deletedAt = null;
     }
 
-    return User.findOne(criteria);
+    return User.findOne(criteria).populate('groups');
   },
 };
