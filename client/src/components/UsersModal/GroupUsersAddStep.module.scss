@@ -1,0 +1,40 @@
+:global(#app) {
+  .menu {
+    margin: 8px 0 0;
+    max-height: 320px;
+    overflow-y: auto;
+    width: 100%;
+  }
+
+  .menuItem {
+    align-items: center;
+    box-sizing: border-box;
+    display: flex;
+    gap: 8px;
+    margin: 0;
+    padding: 4px;
+    width: 100%;
+  }
+
+  .menuItemActive {
+    background: rgba(0, 0, 0, 0.04);
+  }
+
+  .menuItemText {
+    flex: 1;
+    line-height: 32px;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .check {
+    color: #798d99;
+    margin: 0;
+  }
+
+  .user {
+    display: inline-flex;
+  }
+}

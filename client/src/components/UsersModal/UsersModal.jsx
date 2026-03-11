@@ -7,6 +7,11 @@ import { usePopup } from '../../lib/popup';
 import UserAddStepContainer from '../../containers/UserAddStepContainer';
 import Item from './Item';
 import User from '../User';
+import GroupUsersAddStep from './GroupUsersAddStep';
+
+const GROUP_USERS_ADD_POPUP_PROPS = {
+  position: 'left center',
+};
 
 const UsersModal = React.memo(
   ({
@@ -108,8 +113,23 @@ const UsersModal = React.memo(
           : [...prevGroupIds, groupId],
       );
     }, []);
+    const handleGroupUserAdd = useCallback(
+      (groupId, userId) => {
+        const user = items.find((item) => item.id === userId);
+
+        if (!user || user.groupIds.includes(groupId)) {
+          return;
+        }
+
+        onUpdate(userId, {
+          groupIds: [...user.groupIds, groupId],
+        });
+      },
+      [items, onUpdate],
+    );
 
     const UserAddPopupContainer = usePopup(UserAddStepContainer);
+    const GroupUsersAddPopup = usePopup(GroupUsersAddStep, GROUP_USERS_ADD_POPUP_PROPS);
     const groupUsersById = useMemo(() => {
       const map = {};
 
@@ -214,6 +234,16 @@ const UsersModal = React.memo(
                         <Table.Cell>{group.name}</Table.Cell>
                         <Table.Cell>{groupUsersById[group.id]?.length || 0}</Table.Cell>
                         <Table.Cell textAlign="right">
+                          <GroupUsersAddPopup
+                            groupName={group.name}
+                            users={items}
+                            currentUserIds={(groupUsersById[group.id] || []).map((user) => user.id)}
+                            onUserAdd={(userId) => handleGroupUserAdd(group.id, userId)}
+                          >
+                            <Button basic size="tiny">
+                              <Icon name="plus" />
+                            </Button>
+                          </GroupUsersAddPopup>
                           <Button basic size="tiny" onClick={() => handleGroupToggle(group.id)}>
                             <Icon
                               name={
@@ -278,7 +308,9 @@ const UsersModal = React.memo(
         handleDelete,
         handleGroupCreate,
         handleGroupToggle,
+        handleGroupUserAdd,
         handleGroupNameChange,
+        GroupUsersAddPopup,
       ],
     );
 
