@@ -86,6 +86,7 @@ const AccountPane = React.memo(
         <Table unstackable basic="very">
           <Table.Header>
             <Table.Row>
+              <Table.HeaderCell />
               <Table.HeaderCell>{t('common.name')}</Table.HeaderCell>
             </Table.Row>
           </Table.Header>
@@ -93,12 +94,15 @@ const AccountPane = React.memo(
             {groups.length > 0 ? (
               groups.map((group) => (
                 <Table.Row key={group.id}>
+                  <Table.Cell>
+                    <User name={group.name} size="tiny" />
+                  </Table.Cell>
                   <Table.Cell>{group.name}</Table.Cell>
                 </Table.Row>
               ))
             ) : (
               <Table.Row>
-                <Table.Cell>-</Table.Cell>
+                <Table.Cell colSpan={2}>-</Table.Cell>
               </Table.Row>
             )}
           </Table.Body>

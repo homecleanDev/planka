@@ -191,6 +191,7 @@ export default {
       addTask: 'Add task',
       addToCard: 'Add to card',
       addGroup: 'Add group',
+      assignToGroups: 'Assign to groups',
       addUser: 'Add user',
       createBoard: 'Create board',
       createFile: 'Create file',

@@ -1,4 +1,4 @@
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import { Button, Icon } from 'semantic-ui-react';
@@ -56,6 +56,7 @@ const Card = React.memo(
     onLabelDelete,
   }) => {
     const nameEdit = useRef(null);
+    const [isAllUsersVisible, setIsAllUsersVisible] = useState(false);
 
     const handleClick = useCallback(() => {
       if (document.activeElement) {
@@ -86,8 +87,19 @@ const Card = React.memo(
     const handleNameEdit = useCallback(() => {
       nameEdit.current.open();
     }, []);
+    const handleMoreUsersClick = useCallback((event) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      setIsAllUsersVisible(true);
+    }, []);
 
     const ActionsPopup = usePopup(ActionsStep);
+    const visibleUsers = useMemo(
+      () => (isAllUsersVisible ? users : users.slice(0, 3)),
+      [isAllUsersVisible, users],
+    );
+    const hiddenUsersCount = Math.max(users.length - visibleUsers.length, 0);
 
     const contentNode = (
       <>
@@ -140,7 +152,7 @@ const Card = React.memo(
           )}
           {users.length > 0 && (
             <span className={classNames(styles.attachments, styles.attachmentsRight)}>
-              {users.map((user) => (
+              {visibleUsers.map((user) => (
                 <span
                   key={user.id}
                   className={classNames(styles.attachment, styles.attachmentRight)}
@@ -148,6 +160,17 @@ const Card = React.memo(
                   <User name={user.name} avatarUrl={user.avatarUrl} size="small" />
                 </span>
               ))}
+              {!isAllUsersVisible && hiddenUsersCount > 0 && (
+                <span className={classNames(styles.attachment, styles.attachmentRight)}>
+                  <button
+                    type="button"
+                    className={styles.moreUsersButton}
+                    onClick={handleMoreUsersClick}
+                  >
+                    +{hiddenUsersCount}
+                  </button>
+                </span>
+              )}
             </span>
           )}
         </div>

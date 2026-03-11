@@ -1,0 +1,23 @@
+:global(#app) {
+  .menu {
+    margin: 0;
+    max-height: 280px;
+    overflow-y: auto;
+  }
+
+  .menuItem {
+    align-items: center;
+    display: flex;
+    gap: 8px;
+    margin: 0;
+    padding: 6px 8px;
+  }
+
+  .menuItemText {
+    line-height: 32px;
+  }
+
+  .user {
+    display: inline-flex;
+  }
+}

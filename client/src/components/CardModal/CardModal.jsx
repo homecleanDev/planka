@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import { useTranslation } from 'react-i18next';
@@ -259,9 +259,9 @@ const CardModal = React.memo(
         </Grid.Row>
         <Grid.Row className={styles.modalPadding}>
           <Grid.Column width={canEdit ? 12 : 16} className={styles.contentPadding}>
-            {(users.length > 0 || labels.length > 0 || dueDate || stopwatch) && (
+            {(users.length > 0 || canEdit || labels.length > 0 || dueDate || stopwatch) && (
               <div className={styles.moduleWrapper}>
-                {users.length > 0 && (
+                {(users.length > 0 || canEdit) && (
                   <div className={styles.attachments}>
                     <div className={styles.text}>
                       {t('common.members', {
@@ -274,6 +274,7 @@ const CardModal = React.memo(
                           <BoardMembershipsPopup
                             items={allBoardMemberships}
                             currentUserIds={userIds}
+                            showGroups
                             onUserSelect={onUserAdd}
                             onUserDeselect={onUserRemove}
                           >
@@ -288,6 +289,7 @@ const CardModal = React.memo(
                       <BoardMembershipsPopup
                         items={allBoardMemberships}
                         currentUserIds={userIds}
+                        showGroups
                         onUserSelect={onUserAdd}
                         onUserDeselect={onUserRemove}
                       >
@@ -541,6 +543,7 @@ const CardModal = React.memo(
                 <BoardMembershipsPopup
                   items={allBoardMemberships}
                   currentUserIds={userIds}
+                  showGroups
                   onUserSelect={onUserAdd}
                   onUserDeselect={onUserRemove}
                 >

@@ -6,6 +6,7 @@ import { usePopup } from '../../lib/popup';
 
 import UserAddStepContainer from '../../containers/UserAddStepContainer';
 import Item from './Item';
+import User from '../User';
 
 const UsersModal = React.memo(
   ({
@@ -197,6 +198,7 @@ const UsersModal = React.memo(
               <Table unstackable basic="very">
                 <Table.Header>
                   <Table.Row>
+                    <Table.HeaderCell />
                     <Table.HeaderCell>{t('common.name')}</Table.HeaderCell>
                     <Table.HeaderCell>{t('common.users')}</Table.HeaderCell>
                     <Table.HeaderCell />
@@ -206,6 +208,9 @@ const UsersModal = React.memo(
                   {groups.map((group) => (
                     <React.Fragment key={group.id}>
                       <Table.Row>
+                        <Table.Cell>
+                          <User name={group.name} size="tiny" />
+                        </Table.Cell>
                         <Table.Cell>{group.name}</Table.Cell>
                         <Table.Cell>{groupUsersById[group.id]?.length || 0}</Table.Cell>
                         <Table.Cell textAlign="right">
@@ -220,7 +225,7 @@ const UsersModal = React.memo(
                       </Table.Row>
                       {expandedGroupIds.includes(group.id) && (
                         <Table.Row>
-                          <Table.Cell colSpan={3}>
+                          <Table.Cell colSpan={4}>
                             <Table unstackable basic="very">
                               <Table.Header>
                                 <Table.Row>
