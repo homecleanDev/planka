@@ -1,0 +1,14 @@
+.wrapper {
+  max-width: 100%;
+}
+
+.tokenRow {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.generateButton {
+  align-self: end;
+  margin-top: 23px !important;
+}

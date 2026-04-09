@@ -53,6 +53,25 @@ const cardFieldsValidator = (value) => {
   );
 };
 
+const zohoWebhookTokenValidator = (value) =>
+  _.isNull(value) || (_.isString(value) && value.trim().length > 0);
+
+const zohoWebhookListIdValidator = (value) =>
+  _.isNull(value) || (_.isString(value) && /^[0-9]+$/.test(value));
+
+const zohoWebhookUserIdsValidator = (value) => {
+  if (_.isNull(value)) {
+    return true;
+  }
+
+  return (
+    Array.isArray(value) && value.every((userId) => _.isString(userId) && /^[0-9]+$/.test(userId))
+  );
+};
+
+const zohoWebhookCreatorUserIdValidator = (value) =>
+  _.isNull(value) || (_.isString(value) && /^[0-9]+$/.test(value));
+
 module.exports = {
   inputs: {
     id: {
@@ -80,6 +99,25 @@ module.exports = {
       type: 'json',
       custom: cardFieldsValidator,
     },
+    zohoWebhookToken: {
+      type: 'string',
+      custom: zohoWebhookTokenValidator,
+      allowNull: true,
+    },
+    zohoWebhookListId: {
+      type: 'string',
+      custom: zohoWebhookListIdValidator,
+      allowNull: true,
+    },
+    zohoWebhookUserIds: {
+      type: 'json',
+      custom: zohoWebhookUserIdsValidator,
+    },
+    zohoWebhookCreatorUserId: {
+      type: 'string',
+      custom: zohoWebhookCreatorUserIdValidator,
+      allowNull: true,
+    },
   },
 
   exits: {
@@ -103,12 +141,26 @@ module.exports = {
       throw Errors.PROJECT_NOT_FOUND; // Forbidden
     }
 
+    const hasZohoWebhookChange =
+      !_.isUndefined(inputs.zohoWebhookToken) ||
+      !_.isUndefined(inputs.zohoWebhookListId) ||
+      !_.isUndefined(inputs.zohoWebhookUserIds) ||
+      !_.isUndefined(inputs.zohoWebhookCreatorUserId);
+
+    if (hasZohoWebhookChange && !currentUser.isAdmin) {
+      throw Errors.PROJECT_NOT_FOUND; // Forbidden
+    }
+
     const values = _.pick(inputs, [
       'name',
       'background',
       'backgroundImage',
       'member_card_deletion_enabled',
       'cardFields',
+      'zohoWebhookToken',
+      'zohoWebhookListId',
+      'zohoWebhookUserIds',
+      'zohoWebhookCreatorUserId',
     ]);
 
     project = await sails.helpers.projects.updateOne.with({

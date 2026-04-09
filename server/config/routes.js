@@ -15,6 +15,8 @@ module.exports.routes = {
   'POST /api/access-tokens/exchange-using-oidc': 'access-tokens/exchange-using-oidc',
   'DELETE /api/access-tokens/me': 'access-tokens/delete',
 
+  'POST /hook/zoho/:token': 'hooks/zoho',
+
   'GET /api/users': 'users/index',
   'POST /api/users': 'users/create',
   'GET /api/users/:id': 'users/show',

@@ -28,4 +28,5 @@ module.exports.policies = {
   'show-config': true,
   'access-tokens/create': true,
   'access-tokens/exchange-using-oidc': true,
+  'hooks/zoho': true,
 };

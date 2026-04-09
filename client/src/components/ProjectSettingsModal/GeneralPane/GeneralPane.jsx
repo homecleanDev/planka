@@ -9,7 +9,7 @@ import DeleteStep from '../../DeleteStep';
 
 import styles from './GeneralPane.module.scss';
 
-const GeneralPane = React.memo(({ name, member_card_deletion_enabled, onUpdate, onDelete }) => {
+const GeneralPane = React.memo(({ name, memberCardDeletionEnabled, onUpdate, onDelete }) => {
   const [t] = useTranslation();
 
   const DeletePopup = usePopup(DeleteStep);
@@ -19,7 +19,7 @@ const GeneralPane = React.memo(({ name, member_card_deletion_enabled, onUpdate, 
       <InformationEdit
         defaultData={{
           name,
-          member_card_deletion_enabled,
+          member_card_deletion_enabled: memberCardDeletionEnabled,
         }}
         onUpdate={onUpdate}
       />
@@ -50,7 +50,7 @@ const GeneralPane = React.memo(({ name, member_card_deletion_enabled, onUpdate, 
 
 GeneralPane.propTypes = {
   name: PropTypes.string.isRequired,
-  member_card_deletion_enabled: PropTypes.bool.isRequired,
+  memberCardDeletionEnabled: PropTypes.bool.isRequired,
   onUpdate: PropTypes.func.isRequired,
   onDelete: PropTypes.func.isRequired,
 };

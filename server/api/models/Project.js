@@ -66,6 +66,23 @@ module.exports = {
       type: 'json',
       columnName: 'card_fields',
     },
+    zohoWebhookToken: {
+      type: 'string',
+      allowNull: true,
+      columnName: 'zoho_webhook_token',
+    },
+    zohoWebhookListId: {
+      model: 'List',
+      columnName: 'zoho_webhook_list_id',
+    },
+    zohoWebhookUserIds: {
+      type: 'json',
+      columnName: 'zoho_webhook_user_ids',
+    },
+    zohoWebhookCreatorUserId: {
+      model: 'User',
+      columnName: 'zoho_webhook_creator_user_id',
+    },
 
     //  ╔═╗╔╦╗╔╗ ╔═╗╔╦╗╔═╗
     //  ║╣ ║║║╠╩╗║╣  ║║╚═╗

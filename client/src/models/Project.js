@@ -21,6 +21,18 @@ export default class extends BaseModel {
     cardFields: attr({
       getDefault: () => [],
     }),
+    zohoWebhookToken: attr({
+      getDefault: () => null,
+    }),
+    zohoWebhookListId: attr({
+      getDefault: () => null,
+    }),
+    zohoWebhookUserIds: attr({
+      getDefault: () => [],
+    }),
+    zohoWebhookCreatorUserId: attr({
+      getDefault: () => null,
+    }),
     managerUsers: many({
       to: 'User',
       through: 'ProjectManager',

@@ -7,17 +7,25 @@ import ManagersPane from './ManagersPane';
 import BackgroundPane from './BackgroundPane';
 import GeneralPane from './GeneralPane';
 import CardPane from './CardPane';
+import ZohoWebhookPane from './ZohoWebhookPane';
 
 const ProjectSettingsModal = React.memo(
   ({
     name,
-    member_card_deletion_enabled,
+    memberCardDeletionEnabled,
     background,
     backgroundImage,
     isBackgroundImageUpdating,
     cardFields,
+    zohoWebhookToken,
+    zohoWebhookListId,
+    zohoWebhookUserIds,
     managers,
     allUsers,
+    currentUser,
+    currentBoard,
+    currentBoardLists,
+    currentBoardUsers,
     onUpdate,
     onBackgroundImageUpdate,
     onDelete,
@@ -52,7 +60,7 @@ const ProjectSettingsModal = React.memo(
             name={name}
             onUpdate={onUpdate}
             onDelete={onDelete}
-            member_card_deletion_enabled={member_card_deletion_enabled}
+            memberCardDeletionEnabled={memberCardDeletionEnabled}
           />
         ),
       },
@@ -92,6 +100,24 @@ const ProjectSettingsModal = React.memo(
       },
     ];
 
+    if (currentUser?.isAdmin) {
+      panes.splice(3, 0, {
+        menuItem: 'Zoho Webhook',
+        render: () => (
+          <ZohoWebhookPane
+            token={zohoWebhookToken}
+            listId={zohoWebhookListId}
+            userIds={zohoWebhookUserIds}
+            board={currentBoard}
+            lists={currentBoardLists}
+            users={currentBoardUsers}
+            currentUser={currentUser}
+            onUpdate={onUpdate}
+          />
+        ),
+      });
+    }
+
     return (
       <Modal open closeIcon size="small" centered={false} onClose={onClose}>
         <Modal.Content>
@@ -110,16 +136,23 @@ const ProjectSettingsModal = React.memo(
 
 ProjectSettingsModal.propTypes = {
   name: PropTypes.string.isRequired,
-  member_card_deletion_enabled: PropTypes.bool.isRequired,
+  memberCardDeletionEnabled: PropTypes.bool.isRequired,
   /* eslint-disable react/forbid-prop-types */
   background: PropTypes.object,
   backgroundImage: PropTypes.object,
   cardFields: PropTypes.array.isRequired,
+  zohoWebhookToken: PropTypes.string,
+  zohoWebhookListId: PropTypes.string,
+  zohoWebhookUserIds: PropTypes.arrayOf(PropTypes.string),
   /* eslint-enable react/forbid-prop-types */
   isBackgroundImageUpdating: PropTypes.bool.isRequired,
   /* eslint-disable react/forbid-prop-types */
   managers: PropTypes.array.isRequired,
   allUsers: PropTypes.array.isRequired,
+  currentUser: PropTypes.object,
+  currentBoard: PropTypes.object,
+  currentBoardLists: PropTypes.array.isRequired,
+  currentBoardUsers: PropTypes.array.isRequired,
   /* eslint-enable react/forbid-prop-types */
   onUpdate: PropTypes.func.isRequired,
   onBackgroundImageUpdate: PropTypes.func.isRequired,
@@ -132,7 +165,11 @@ ProjectSettingsModal.propTypes = {
 ProjectSettingsModal.defaultProps = {
   background: undefined,
   backgroundImage: undefined,
-  cardFields: [],
+  zohoWebhookToken: '',
+  zohoWebhookListId: null,
+  zohoWebhookUserIds: [],
+  currentUser: undefined,
+  currentBoard: undefined,
 };
 
 export default ProjectSettingsModal;
