@@ -10,7 +10,6 @@ const selectListById = selectors.makeSelectListById();
 const mapStateToProps = (state) => {
   const users = selectors.selectUsers(state);
   const currentUser = selectors.selectCurrentUser(state);
-  const currentBoard = selectors.selectCurrentBoard(state);
   const boardMemberships = selectors.selectMembershipsForCurrentBoard(state) || [];
   const listIds = selectors.selectListIdsForCurrentBoard(state) || [];
 
@@ -21,9 +20,11 @@ const mapStateToProps = (state) => {
     isBackgroundImageUpdating,
     member_card_deletion_enabled: memberCardDeletionEnabled,
     cardFields,
+    zohoWebhooks,
     zohoWebhookToken,
     zohoWebhookListId,
     zohoWebhookUserIds,
+    zohoWebhookCreatorUserId,
   } = selectors.selectCurrentProject(state);
 
   const managers = selectors.selectManagersForCurrentProject(state);
@@ -35,13 +36,22 @@ const mapStateToProps = (state) => {
     backgroundImage,
     isBackgroundImageUpdating,
     cardFields: cardFields || [],
-    zohoWebhookToken,
-    zohoWebhookListId,
-    zohoWebhookUserIds: zohoWebhookUserIds || [],
+    zohoWebhooks:
+      zohoWebhooks ||
+      (zohoWebhookToken && zohoWebhookListId
+        ? [
+            {
+              id: zohoWebhookToken,
+              token: zohoWebhookToken,
+              listId: zohoWebhookListId,
+              userIds: zohoWebhookUserIds || [],
+              creatorUserId: zohoWebhookCreatorUserId || currentUser?.id,
+            },
+          ]
+        : []),
     managers,
     allUsers: users,
     currentUser,
-    currentBoard,
     currentBoardLists: listIds.map((id) => selectListById(state, id)).filter(Boolean),
     currentBoardUsers: boardMemberships.map((membership) => membership.user),
   };

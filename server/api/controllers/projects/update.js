@@ -72,6 +72,30 @@ const zohoWebhookUserIdsValidator = (value) => {
 const zohoWebhookCreatorUserIdValidator = (value) =>
   _.isNull(value) || (_.isString(value) && /^[0-9]+$/.test(value));
 
+const zohoWebhooksValidator = (value) => {
+  if (_.isNull(value)) {
+    return true;
+  }
+
+  if (!Array.isArray(value)) {
+    return false;
+  }
+
+  return value.every(
+    (item) =>
+      _.isPlainObject(item) &&
+      _.isString(item.token) &&
+      item.token.trim().length > 0 &&
+      _.isString(item.listId) &&
+      /^[0-9]+$/.test(item.listId) &&
+      _.isArray(item.userIds) &&
+      item.userIds.every((userId) => _.isString(userId) && /^[0-9]+$/.test(userId)) &&
+      _.isString(item.creatorUserId) &&
+      /^[0-9]+$/.test(item.creatorUserId) &&
+      (_.isUndefined(item.id) || (_.isString(item.id) && item.id.length > 0)),
+  );
+};
+
 module.exports = {
   inputs: {
     id: {
@@ -98,6 +122,10 @@ module.exports = {
     cardFields: {
       type: 'json',
       custom: cardFieldsValidator,
+    },
+    zohoWebhooks: {
+      type: 'json',
+      custom: zohoWebhooksValidator,
     },
     zohoWebhookToken: {
       type: 'string',
@@ -142,6 +170,7 @@ module.exports = {
     }
 
     const hasZohoWebhookChange =
+      !_.isUndefined(inputs.zohoWebhooks) ||
       !_.isUndefined(inputs.zohoWebhookToken) ||
       !_.isUndefined(inputs.zohoWebhookListId) ||
       !_.isUndefined(inputs.zohoWebhookUserIds) ||
@@ -151,17 +180,50 @@ module.exports = {
       throw Errors.PROJECT_NOT_FOUND; // Forbidden
     }
 
-    const values = _.pick(inputs, [
-      'name',
-      'background',
-      'backgroundImage',
-      'member_card_deletion_enabled',
-      'cardFields',
-      'zohoWebhookToken',
-      'zohoWebhookListId',
-      'zohoWebhookUserIds',
-      'zohoWebhookCreatorUserId',
-    ]);
+    let normalizedZohoWebhooks = inputs.zohoWebhooks;
+
+    if (!_.isUndefined(inputs.zohoWebhooks) && Array.isArray(project.zohoWebhooks)) {
+      const existingWebhookById = project.zohoWebhooks.reduce((result, item) => {
+        if (item && item.id) {
+          return {
+            ...result,
+            [item.id]: item,
+          };
+        }
+
+        return result;
+      }, {});
+
+      normalizedZohoWebhooks = inputs.zohoWebhooks.map((item) => {
+        const existingWebhook = item.id && existingWebhookById[item.id];
+
+        if (!existingWebhook) {
+          return item;
+        }
+
+        return {
+          ...item,
+          token: existingWebhook.token,
+        };
+      });
+    }
+
+    const values = {
+      ..._.pick(inputs, [
+        'name',
+        'background',
+        'backgroundImage',
+        'member_card_deletion_enabled',
+        'cardFields',
+        'zohoWebhookToken',
+        'zohoWebhookListId',
+        'zohoWebhookUserIds',
+        'zohoWebhookCreatorUserId',
+      ]),
+      ...(!_.isUndefined(normalizedZohoWebhooks) && {
+        zohoWebhooks: normalizedZohoWebhooks,
+      }),
+    };
 
     project = await sails.helpers.projects.updateOne.with({
       values,

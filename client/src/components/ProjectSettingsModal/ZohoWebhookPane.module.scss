@@ -2,13 +2,18 @@
   max-width: 100%;
 }
 
-.tokenRow {
+.headerRow {
   display: flex;
-  gap: 12px;
-  align-items: flex-end;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
 }
 
-.generateButton {
-  align-self: end;
-  margin-top: 23px !important;
+.headerText {
+  font-weight: 600;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
 }

@@ -66,6 +66,10 @@ module.exports = {
       type: 'json',
       columnName: 'card_fields',
     },
+    zohoWebhooks: {
+      type: 'json',
+      columnName: 'zoho_webhooks',
+    },
     zohoWebhookToken: {
       type: 'string',
       allowNull: true,

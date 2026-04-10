@@ -21,6 +21,9 @@ export default class extends BaseModel {
     cardFields: attr({
       getDefault: () => [],
     }),
+    zohoWebhooks: attr({
+      getDefault: () => [],
+    }),
     zohoWebhookToken: attr({
       getDefault: () => null,
     }),

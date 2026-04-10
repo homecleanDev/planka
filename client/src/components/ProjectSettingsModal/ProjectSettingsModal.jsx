@@ -17,13 +17,10 @@ const ProjectSettingsModal = React.memo(
     backgroundImage,
     isBackgroundImageUpdating,
     cardFields,
-    zohoWebhookToken,
-    zohoWebhookListId,
-    zohoWebhookUserIds,
+    zohoWebhooks,
     managers,
     allUsers,
     currentUser,
-    currentBoard,
     currentBoardLists,
     currentBoardUsers,
     onUpdate,
@@ -105,10 +102,7 @@ const ProjectSettingsModal = React.memo(
         menuItem: 'Zoho Webhook',
         render: () => (
           <ZohoWebhookPane
-            token={zohoWebhookToken}
-            listId={zohoWebhookListId}
-            userIds={zohoWebhookUserIds}
-            board={currentBoard}
+            items={zohoWebhooks}
             lists={currentBoardLists}
             users={currentBoardUsers}
             currentUser={currentUser}
@@ -141,16 +135,13 @@ ProjectSettingsModal.propTypes = {
   background: PropTypes.object,
   backgroundImage: PropTypes.object,
   cardFields: PropTypes.array.isRequired,
-  zohoWebhookToken: PropTypes.string,
-  zohoWebhookListId: PropTypes.string,
-  zohoWebhookUserIds: PropTypes.arrayOf(PropTypes.string),
+  zohoWebhooks: PropTypes.array.isRequired,
   /* eslint-enable react/forbid-prop-types */
   isBackgroundImageUpdating: PropTypes.bool.isRequired,
   /* eslint-disable react/forbid-prop-types */
   managers: PropTypes.array.isRequired,
   allUsers: PropTypes.array.isRequired,
   currentUser: PropTypes.object,
-  currentBoard: PropTypes.object,
   currentBoardLists: PropTypes.array.isRequired,
   currentBoardUsers: PropTypes.array.isRequired,
   /* eslint-enable react/forbid-prop-types */
@@ -165,11 +156,7 @@ ProjectSettingsModal.propTypes = {
 ProjectSettingsModal.defaultProps = {
   background: undefined,
   backgroundImage: undefined,
-  zohoWebhookToken: '',
-  zohoWebhookListId: null,
-  zohoWebhookUserIds: [],
   currentUser: undefined,
-  currentBoard: undefined,
 };
 
 export default ProjectSettingsModal;

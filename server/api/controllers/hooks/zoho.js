@@ -22,6 +22,19 @@ const getDescription = (payload) => {
   return null;
 };
 
+const buildLegacyWebhook = (project) => {
+  if (!project.zohoWebhookToken || !project.zohoWebhookListId) {
+    return null;
+  }
+
+  return {
+    token: project.zohoWebhookToken,
+    listId: project.zohoWebhookListId,
+    userIds: Array.isArray(project.zohoWebhookUserIds) ? project.zohoWebhookUserIds : [],
+    creatorUserId: project.zohoWebhookCreatorUserId || null,
+  };
+};
+
 module.exports = {
   inputs: {
     token: {
@@ -33,17 +46,40 @@ module.exports = {
   async fn(inputs) {
     const payload = _.isPlainObject(this.req.body) ? this.req.body : {};
 
-    const project = await Project.findOne({
+    const legacyProject = await Project.findOne({
       zohoWebhookToken: inputs.token,
     });
 
-    if (!project || !project.zohoWebhookListId) {
+    const projectsWithZohoWebhooks = await Project.find({
+      zohoWebhooks: {
+        '!=': null,
+      },
+    });
+
+    const projectWithArrayWebhook = projectsWithZohoWebhooks.find(
+      (item) =>
+        Array.isArray(item.zohoWebhooks) &&
+        item.zohoWebhooks.some((webhook) => webhook.token === inputs.token),
+    );
+
+    const project = projectWithArrayWebhook || legacyProject;
+
+    if (!project) {
+      return this.res.notFound();
+    }
+
+    const webhook =
+      (Array.isArray(project.zohoWebhooks) &&
+        project.zohoWebhooks.find((item) => item.token === inputs.token)) ||
+      buildLegacyWebhook(project);
+
+    if (!webhook || !webhook.listId) {
       return this.res.notFound();
     }
 
     const { list, board } = await sails.helpers.lists
       .getProjectPath({
-        id: project.zohoWebhookListId,
+        id: webhook.listId,
       })
       .intercept('pathNotFound', () => null);
 
@@ -59,9 +95,9 @@ module.exports = {
         })
       : null;
 
-    if (!creatorUser && project.zohoWebhookCreatorUserId) {
+    if (!creatorUser && webhook.creatorUserId) {
       creatorUser = await sails.helpers.users.getOne({
-        id: project.zohoWebhookCreatorUserId,
+        id: webhook.creatorUserId,
       });
     }
 
@@ -118,9 +154,7 @@ module.exports = {
           ).map((user) => user.id)
         : [];
 
-    const configuredUserIds = Array.isArray(project.zohoWebhookUserIds)
-      ? project.zohoWebhookUserIds
-      : [];
+    const configuredUserIds = Array.isArray(webhook.userIds) ? webhook.userIds : [];
 
     const memberUserIds = [...new Set([...configuredUserIds, ...matchedEmailUserIds])].filter(
       (userId) => boardMemberUserIds.has(userId),

@@ -2,9 +2,25 @@ import { dequal } from 'dequal';
 import { nanoid } from 'nanoid';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
-import { Button, Form, Message, Tab } from 'semantic-ui-react';
+import { Button, Form, Icon, Message, Segment, Tab } from 'semantic-ui-react';
 
 import styles from './ZohoWebhookPane.module.scss';
+
+const createWebhook = (currentUserId) => ({
+  id: nanoid(),
+  token: nanoid(32),
+  listId: '',
+  userIds: [],
+  creatorUserId: currentUserId,
+});
+
+const normalizeWebhook = (item, currentUserId) => ({
+  id: item.id || nanoid(),
+  token: (item.token || '').trim(),
+  listId: item.listId || null,
+  userIds: [...new Set(item.userIds || [])].filter(Boolean),
+  creatorUserId: item.creatorUserId || currentUserId,
+});
 
 const buildWebhookUrl = (token) => {
   if (!token || typeof window === 'undefined') {
@@ -14,163 +30,186 @@ const buildWebhookUrl = (token) => {
   return `${window.location.origin}/hook/zoho/${token}`;
 };
 
-const ZohoWebhookPane = React.memo(
-  ({ token, listId, userIds, board, lists, users, currentUser, onUpdate }) => {
-    const [data, setData] = useState(() => ({
-      token: token || '',
-      listId: listId || '',
-      userIds: userIds || [],
-    }));
+const ZohoWebhookPane = React.memo(({ items, lists, users, currentUser, onUpdate }) => {
+  const [webhooks, setWebhooks] = useState(() =>
+    (items.length > 0 ? items : [createWebhook(currentUser.id)]).map((item) =>
+      normalizeWebhook(item, currentUser.id),
+    ),
+  );
 
-    useEffect(() => {
-      setData({
-        token: token || '',
-        listId: listId || '',
-        userIds: userIds || [],
-      });
-    }, [token, listId, userIds]);
-
-    const normalizedData = useMemo(
-      () => ({
-        token: data.token.trim(),
-        listId: data.listId || null,
-        userIds: [...new Set(data.userIds)].filter(Boolean),
-      }),
-      [data],
+  useEffect(() => {
+    setWebhooks(
+      (items.length > 0 ? items : [createWebhook(currentUser.id)]).map((item) =>
+        normalizeWebhook(item, currentUser.id),
+      ),
     );
+  }, [items, currentUser.id]);
 
-    const normalizedDefaults = useMemo(
-      () => ({
-        token: (token || '').trim(),
-        listId: listId || null,
-        userIds: [...new Set(userIds || [])].filter(Boolean),
-      }),
-      [token, listId, userIds],
+  const normalizedWebhooks = useMemo(
+    () => webhooks.map((item) => normalizeWebhook(item, currentUser.id)),
+    [webhooks, currentUser.id],
+  );
+
+  const normalizedDefaults = useMemo(
+    () =>
+      (items.length > 0 ? items : [createWebhook(currentUser.id)]).map((item) =>
+        normalizeWebhook(item, currentUser.id),
+      ),
+    [items, currentUser.id],
+  );
+
+  const persistedWebhookIds = useMemo(
+    () => new Set(items.map((item) => item.id).filter(Boolean)),
+    [items],
+  );
+
+  const listOptions = useMemo(
+    () =>
+      lists.map((item) => ({
+        key: item.id,
+        text: item.name,
+        value: item.id,
+      })),
+    [lists],
+  );
+
+  const userOptions = useMemo(
+    () =>
+      users.map((user) => ({
+        key: user.id,
+        text: user.name,
+        value: user.id,
+        description: user.email,
+      })),
+    [users],
+  );
+
+  const handleFieldChange = useCallback((index, { name, value }) => {
+    setWebhooks((prev) =>
+      prev.map((item, currentIndex) =>
+        currentIndex === index
+          ? {
+              ...item,
+              [name]: value,
+            }
+          : item,
+      ),
     );
+  }, []);
 
-    const webhookUrl = useMemo(() => buildWebhookUrl(normalizedData.token), [normalizedData.token]);
+  const handleAddWebhook = useCallback(() => {
+    setWebhooks((prev) => [...prev, createWebhook(currentUser.id)]);
+  }, [currentUser.id]);
 
-    const userOptions = useMemo(
-      () =>
-        users.map((user) => ({
-          key: user.id,
-          text: user.name,
-          value: user.id,
-          description: user.email,
+  const handleRemoveWebhook = useCallback((index) => {
+    setWebhooks((prev) => prev.filter((_, currentIndex) => currentIndex !== index));
+  }, []);
+
+  const handleSubmit = useCallback(() => {
+    onUpdate({
+      zohoWebhooks: normalizedWebhooks
+        .filter((item) => item.token && item.listId)
+        .map((item) => ({
+          ...item,
+          creatorUserId: item.creatorUserId || currentUser.id,
         })),
-      [users],
-    );
+    });
+  }, [currentUser.id, normalizedWebhooks, onUpdate]);
 
-    const listOptions = useMemo(
-      () =>
-        lists.map((item) => ({
-          key: item.id,
-          text: item.name,
-          value: item.id,
-        })),
-      [lists],
-    );
+  const hasInvalidWebhook = normalizedWebhooks.some((item) => !item.token || !item.listId);
+  const isSaveDisabled =
+    hasInvalidWebhook ||
+    dequal(normalizedWebhooks, normalizedDefaults) ||
+    normalizedWebhooks.length === 0;
 
-    const handleFieldChange = useCallback((event, { name, value }) => {
-      setData((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
-    }, []);
+  return (
+    <Tab.Pane attached={false} className={styles.wrapper}>
+      <Form onSubmit={handleSubmit}>
+        <Message info>
+          <Message.Header>Zoho Mail mapping</Message.Header>
+          <p>
+            Incoming payload uses <code>subject</code> for the card title and <code>summary</code>{' '}
+            or <code>html</code> for the description.
+          </p>
+          <p>
+            Card members are matched from Zoho sender and recipient email addresses, then merged
+            with the additional assignees you select below.
+          </p>
+        </Message>
 
-    const handleTokenGenerate = useCallback(() => {
-      setData((prev) => ({
-        ...prev,
-        token: nanoid(32),
-      }));
-    }, []);
+        {normalizedWebhooks.map((item, index) => (
+          <Segment key={item.id}>
+            <div className={styles.headerRow}>
+              <div className={styles.headerText}>Webhook {index + 1}</div>
+              <Button
+                type="button"
+                basic
+                icon
+                disabled={normalizedWebhooks.length === 1}
+                onClick={() => handleRemoveWebhook(index)}
+              >
+                <Icon name="trash" />
+              </Button>
+            </div>
 
-    const handleSubmit = useCallback(() => {
-      onUpdate({
-        zohoWebhookToken: normalizedData.token || null,
-        zohoWebhookListId: normalizedData.listId,
-        zohoWebhookUserIds: normalizedData.userIds,
-        zohoWebhookCreatorUserId: currentUser.id,
-      });
-    }, [currentUser.id, normalizedData, onUpdate]);
-
-    const isSaveDisabled =
-      !normalizedData.token || !normalizedData.listId || dequal(normalizedData, normalizedDefaults);
-
-    return (
-      <Tab.Pane attached={false} className={styles.wrapper}>
-        <Form onSubmit={handleSubmit}>
-          <Message info>
-            <Message.Header>Zoho Mail mapping</Message.Header>
-            <p>
-              Incoming payload uses <code>subject</code> for the card title and <code>summary</code>{' '}
-              or <code>html</code> for the description.
-            </p>
-            <p>
-              Card members are matched from Zoho sender and recipient email addresses, then merged
-              with the additional assignees you select below.
-            </p>
-          </Message>
-
-          <Form.Input label="Board" value={board ? board.name : 'No board selected'} readOnly />
-
-          <Form.Dropdown
-            fluid
-            selection
-            required
-            name="listId"
-            label="Target list"
-            options={listOptions}
-            value={normalizedData.listId || undefined}
-            placeholder="Select list"
-            disabled={listOptions.length === 0}
-            onChange={handleFieldChange}
-          />
-
-          <Form.Dropdown
-            fluid
-            multiple
-            selection
-            search
-            name="userIds"
-            label="Additional assignees"
-            options={userOptions}
-            value={normalizedData.userIds}
-            placeholder="Select users"
-            onChange={handleFieldChange}
-          />
-
-          <div className={styles.tokenRow}>
-            <Form.Input
+            <Form.Dropdown
               fluid
+              selection
               required
-              name="token"
-              label="Verification token"
-              value={normalizedData.token}
-              placeholder="Generate a token"
-              onChange={handleFieldChange}
+              name="listId"
+              label="Target list"
+              options={listOptions}
+              value={item.listId || undefined}
+              placeholder="Select list"
+              disabled={listOptions.length === 0}
+              onChange={(event, data) => handleFieldChange(index, data)}
             />
-            <Button type="button" className={styles.generateButton} onClick={handleTokenGenerate}>
-              Generate token
-            </Button>
-          </div>
 
-          <Form.TextArea label="Webhook URL" value={webhookUrl} rows={3} readOnly />
+            <Form.Dropdown
+              fluid
+              multiple
+              selection
+              search
+              name="userIds"
+              label="Additional assignees"
+              options={userOptions}
+              value={item.userIds}
+              placeholder="Select users"
+              onChange={(event, data) => handleFieldChange(index, data)}
+            />
 
+            {persistedWebhookIds.has(item.id) && (
+              <Form.TextArea
+                label="Webhook URL"
+                value={buildWebhookUrl(item.token)}
+                rows={3}
+                readOnly
+              />
+            )}
+          </Segment>
+        ))}
+
+        <div className={styles.actions}>
+          <Button type="button" onClick={handleAddWebhook}>
+            Add webhook
+          </Button>
           <Button positive content="Save" disabled={isSaveDisabled} />
-        </Form>
-      </Tab.Pane>
-    );
-  },
-);
+        </div>
+      </Form>
+    </Tab.Pane>
+  );
+});
 
 ZohoWebhookPane.propTypes = {
-  token: PropTypes.string,
-  listId: PropTypes.string,
-  userIds: PropTypes.arrayOf(PropTypes.string),
-  board: PropTypes.shape({
-    name: PropTypes.string,
-  }),
+  items: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.string,
+      token: PropTypes.string,
+      listId: PropTypes.string,
+      userIds: PropTypes.arrayOf(PropTypes.string),
+      creatorUserId: PropTypes.string,
+    }),
+  ).isRequired,
   lists: PropTypes.arrayOf(
     PropTypes.shape({
       id: PropTypes.string.isRequired,
@@ -188,13 +227,6 @@ ZohoWebhookPane.propTypes = {
     id: PropTypes.string.isRequired,
   }).isRequired,
   onUpdate: PropTypes.func.isRequired,
-};
-
-ZohoWebhookPane.defaultProps = {
-  token: '',
-  listId: null,
-  userIds: [],
-  board: undefined,
 };
 
 export default ZohoWebhookPane;
