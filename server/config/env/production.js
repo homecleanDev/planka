@@ -23,6 +23,16 @@ const url = require('url');
 
 const { customLogger } = require('../../utils/logger');
 
+function buildDatastoreSSLConfig() {
+  if (process.env.KNEX_REJECT_UNAUTHORIZED_SSL_CERTIFICATE === 'false') {
+    return {
+      rejectUnauthorized: false,
+    };
+  }
+
+  return undefined;
+}
+
 module.exports = {
   /**
    *
@@ -60,10 +70,10 @@ module.exports = {
        * > extra `ssl: true` option is mandatory and must be provided.
        *
        * More info:
-       * https://sailsjs.com/config/datastores
-       *
-       */
-      // ssl: true,
+      * https://sailsjs.com/config/datastores
+      *
+      */
+      ssl: buildDatastoreSSLConfig(),
     },
   },
 
