@@ -69,27 +69,27 @@ services:
 
       # - SLACK_BOT_TOKEN=
       # - SLACK_CHANNEL_ID=
-    depends_on:
-      postgres:
-        condition: service_healthy
+    # depends_on:
+    #   postgres:
+    #     condition: service_healthy
 
-  postgres:
-    image: postgres:latest
-    restart: on-failure
-    volumes:
-      - db-data:/var/lib/postgresql/data
-    environment:
-      - POSTGRES_DB=planka
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_HOST_AUTH_METHOD=trust
-    ports:
-      - 5432:5432
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d planka"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+  # postgres:
+  #   image: postgres:latest
+  #   restart: on-failure
+  #   volumes:
+  #     - db-data:/var/lib/postgresql/data
+  #   environment:
+  #     - POSTGRES_DB=planka
+  #     - POSTGRES_USER=user
+  #     - POSTGRES_PASSWORD=password
+  #     - POSTGRES_HOST_AUTH_METHOD=trust
+  #   ports:
+  #     - 5432:5432
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U postgres -d planka"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
 
   nginx-proxy:
     image: jwilder/nginx-proxy
