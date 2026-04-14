@@ -1,6 +1,7 @@
 const POSITION_GAP = 65535;
 
 const EMAIL_REGEX = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
+const { getDescription } = require('../../../utils/zohoWebhook');
 
 const extractEmails = (...values) =>
   values
@@ -9,18 +10,6 @@ const extractEmails = (...values) =>
     .map((email) => email.toLowerCase());
 
 const getSenderEmail = (payload) => extractEmails(payload.fromAddress, payload.sender)[0] || null;
-
-const getDescription = (payload) => {
-  if (_.isString(payload.summary) && payload.summary.trim()) {
-    return payload.summary.trim();
-  }
-
-  if (_.isString(payload.html) && payload.html.trim()) {
-    return payload.html.trim();
-  }
-
-  return null;
-};
 
 const buildLegacyWebhook = (project) => {
   if (!project.zohoWebhookToken || !project.zohoWebhookListId) {
