@@ -4,6 +4,7 @@ const HTML_BLOCK_BREAK_REGEX = /<(br\s*\/?|\/p|\/div|\/h[1-6]|\/tr|\/table|\/blo
 const HTML_LIST_ITEM_REGEX = /<li\b[^>]*>/gi;
 const HTML_LIST_ITEM_CLOSE_REGEX = /<\/li>/gi;
 const HTML_TAG_REGEX = /<[^>]+>/g;
+const ZOHO_SIGNATURE_CLASS_REGEX = /zmail_signature_below/i;
 const REPLY_HEADER_REGEX = /^\s*(from:.*|sent:.*|to:.*|subject:.*|on .+ wrote:)\s*$/im;
 const SIGNATURE_MARKER_REGEX = /^\s*(--\s*|__+\s*|sent from my .*)$/im;
 const SIGN_OFF_REGEX = /^(thanks(?: and regards)?|best(?: regards| wishes)?|kind regards|regards|cheers|sincerely|warm regards)[,!]?\s*$/i;
@@ -18,10 +19,22 @@ const normalizeWhitespace = (value) =>
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 
+const stripZohoSignatureHtml = (value) => {
+  const signatureIndex = value.search(ZOHO_SIGNATURE_CLASS_REGEX);
+
+  if (signatureIndex === -1) {
+    return value;
+  }
+
+  const tagStartIndex = value.lastIndexOf('<', signatureIndex);
+
+  return value.slice(0, tagStartIndex >= 0 ? tagStartIndex : signatureIndex);
+};
+
 const htmlToPlainText = (value) =>
   normalizeWhitespace(
     _.unescape(
-      value
+      stripZohoSignatureHtml(value)
         .replace(HTML_LIST_ITEM_REGEX, '\n- ')
         .replace(HTML_LIST_ITEM_CLOSE_REGEX, '')
         .replace(HTML_BLOCK_BREAK_REGEX, '\n')
@@ -67,17 +80,17 @@ const stripSignature = (value) => {
 const cleanEmailText = (value) => stripSignature(stripQuotedReply(normalizeWhitespace(value)));
 
 const getDescriptionSource = (payload) => {
-  if (_.isString(payload.summary) && payload.summary.trim()) {
-    return {
-      source: 'summary',
-      value: cleanEmailText(payload.summary),
-    };
-  }
-
   if (_.isString(payload.html) && payload.html.trim()) {
     return {
       source: 'html',
       value: cleanEmailText(htmlToPlainText(payload.html)),
+    };
+  }
+
+  if (_.isString(payload.summary) && payload.summary.trim()) {
+    return {
+      source: 'summary',
+      value: cleanEmailText(payload.summary),
     };
   }
 
