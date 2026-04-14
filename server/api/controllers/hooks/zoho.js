@@ -1,7 +1,7 @@
 const POSITION_GAP = 65535;
 
 const EMAIL_REGEX = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
-const { getDescription } = require('../../../utils/zohoWebhook');
+const { getDescriptionSource } = require('../../../utils/zohoWebhook');
 
 const extractEmails = (...values) =>
   values
@@ -34,6 +34,17 @@ module.exports = {
 
   async fn(inputs) {
     const payload = _.isPlainObject(this.req.body) ? this.req.body : {};
+    const { source: descriptionSource, value: description } = getDescriptionSource(payload);
+
+    console.log(
+      '[Zoho webhook] payload:',
+      JSON.stringify(payload, null, 2),
+    );
+    console.log('[Zoho webhook] description:', {
+      source: descriptionSource,
+      length: _.isString(description) ? description.length : 0,
+      preview: _.isString(description) ? description.slice(0, 500) : null,
+    });
 
     const legacyProject = await Project.findOne({
       zohoWebhookToken: inputs.token,
@@ -118,7 +129,7 @@ module.exports = {
         creatorUser,
         position: (lastCard ? lastCard.position : 0) + POSITION_GAP,
         name: (_.isString(payload.subject) && payload.subject.trim()) || 'Zoho Email',
-        description: getDescription(payload),
+        description,
       },
       request: this.req,
     });

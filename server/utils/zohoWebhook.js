@@ -66,24 +66,43 @@ const stripSignature = (value) => {
 
 const cleanEmailText = (value) => stripSignature(stripQuotedReply(normalizeWhitespace(value)));
 
-const getDescription = (payload) => {
+const getDescriptionSource = (payload) => {
   if (_.isString(payload.summary) && payload.summary.trim()) {
-    return cleanEmailText(payload.summary);
+    return {
+      source: 'summary',
+      value: cleanEmailText(payload.summary),
+    };
   }
 
   if (_.isString(payload.html) && payload.html.trim()) {
-    return cleanEmailText(htmlToPlainText(payload.html));
+    return {
+      source: 'html',
+      value: cleanEmailText(htmlToPlainText(payload.html)),
+    };
   }
 
   if (_.isString(payload.content) && payload.content.trim()) {
-    return cleanEmailText(payload.content);
+    return {
+      source: 'content',
+      value: cleanEmailText(payload.content),
+    };
   }
 
-  return null;
+  return {
+    source: null,
+    value: null,
+  };
+};
+
+const getDescription = (payload) => {
+  const { value } = getDescriptionSource(payload);
+
+  return value;
 };
 
 module.exports = {
   cleanEmailText,
   getDescription,
+  getDescriptionSource,
   htmlToPlainText,
 };
