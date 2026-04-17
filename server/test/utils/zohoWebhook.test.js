@@ -1,50 +1,44 @@
 const { expect } = require('chai');
 
-const { cleanEmailText, getDescription, htmlToPlainText } = require('../../utils/zohoWebhook');
+const { getDescription, htmlToMarkdown } = require('../../utils/zohoWebhook');
 
 describe('zohoWebhook utils', () => {
-  describe('#htmlToPlainText()', () => {
-    it('preserves line breaks from common HTML tags', () => {
-      const result = htmlToPlainText('<div>Hello</div><div>World</div><p>Next</p><ul><li>One</li><li>Two</li></ul>');
-
-      expect(result).to.equal('Hello\nWorld\nNext\n- One\n- Two');
-    });
-  });
-
-  describe('#cleanEmailText()', () => {
-    it('strips a trailing signature block after a sign-off', () => {
-      const result = cleanEmailText(
-        'Issue details here.\n\nKind regards,\nAlbert Buenaventura\nSupport Team',
+  describe('#htmlToMarkdown()', () => {
+    it('preserves line breaks and list items from common HTML tags', () => {
+      const result = htmlToMarkdown(
+        '<div>Hello</div><div>World</div><p>Next</p><ul><li>One</li><li>Two</li></ul>',
       );
 
-      expect(result).to.equal('Issue details here.');
+      expect(result).to.equal('Hello\nWorld\n\nNext\n- One\n- Two');
     });
 
-    it('strips quoted reply headers and older thread content', () => {
-      const result = cleanEmailText(
-        'Latest update from guest.\n\nOn Mon, Apr 14, 2026 at 9:00 AM Support wrote:\nOlder thread',
+    it('converts links and inline formatting to markdown', () => {
+      const result = htmlToMarkdown(
+        '<p><strong>Important</strong> <em>notice</em> <a href="https://example.com">Open link</a></p>',
       );
 
-      expect(result).to.equal('Latest update from guest.');
+      expect(result).to.equal('**Important** *notice* [Open link](https://example.com)');
+    });
+
+    it('keeps forwarded message content and email footer text', () => {
+      const result = htmlToMarkdown(
+        '<div>Sample email with forwarded message<br><br><div>---------- Forwarded message ---------<br>From: &lt;<a href="mailto:noreply@example.com">noreply@example.com</a>&gt;<br></div><br><p>Greetings from MediCard GO!</p><p>Thank you.</p><i>(This is an auto-generated email. Please do not respond.)</i></div>',
+      );
+
+      expect(result).to.equal(
+        'Sample email with forwarded message\n\n---------- Forwarded message ---------\nFrom: <[noreply@example.com](mailto:noreply@example.com)>\n\nGreetings from MediCard GO!\n\nThank you.\n\n*(This is an auto-generated email. Please do not respond.)*',
+      );
     });
   });
 
   describe('#getDescription()', () => {
-    it('uses html before summary so line breaks are preserved', () => {
+    it('uses html before summary so formatting is preserved', () => {
       const result = getDescription({
-        summary: 'Line 1\r\n\r\nLine 2',
+        summary: 'Line 1 Line 2',
         html: '<div>Line 1<br>Line 2</div>',
       });
 
       expect(result).to.equal('Line 1\nLine 2');
-    });
-
-    it('falls back to html and strips the signature', () => {
-      const result = getDescription({
-        html: '<div>Hello team,<br><br>The guest reported a leak.</div><div class="zmail_signature_below">Thanks,<br>Albert</div>',
-      });
-
-      expect(result).to.equal('Hello team,\n\nThe guest reported a leak.');
     });
 
     it('falls back to summary when html is unavailable', () => {

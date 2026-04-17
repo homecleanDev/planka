@@ -1,13 +1,28 @@
 const _ = require('lodash');
 
-const HTML_BLOCK_BREAK_REGEX = /<(br\s*\/?|\/p|\/div|\/h[1-6]|\/tr|\/table|\/blockquote)>/gi;
-const HTML_LIST_ITEM_REGEX = /<li\b[^>]*>/gi;
-const HTML_LIST_ITEM_CLOSE_REGEX = /<\/li>/gi;
-const HTML_TAG_REGEX = /<[^>]+>/g;
-const ZOHO_SIGNATURE_CLASS_REGEX = /zmail_signature_below/i;
-const REPLY_HEADER_REGEX = /^\s*(from:.*|sent:.*|to:.*|subject:.*|on .+ wrote:)\s*$/im;
-const SIGNATURE_MARKER_REGEX = /^\s*(--\s*|__+\s*|sent from my .*)$/im;
-const SIGN_OFF_REGEX = /^(thanks(?: and regards)?|best(?: regards| wishes)?|kind regards|regards|cheers|sincerely|warm regards)[,!]?\s*$/i;
+const DOUBLE_BREAK_BLOCK_CLOSE_REGEX = /<\/(p|h[1-6]|blockquote|table|ul|ol)>/gi;
+const SINGLE_BREAK_BLOCK_CLOSE_REGEX = /<\/(div|tr)>/gi;
+const LINE_BREAK_REGEX = /<br\s*\/?>/gi;
+const LIST_ITEM_OPEN_REGEX = /<li\b[^>]*>/gi;
+const LIST_ITEM_CLOSE_REGEX = /<\/li>/gi;
+const TABLE_CELL_CLOSE_REGEX = /<\/td>\s*<td\b[^>]*>/gi;
+const PARAGRAPH_TAG_REGEX = /<\/?p\b[^>]*>/gi;
+const BOLD_OPEN_REGEX = /<(strong|b)\b[^>]*>/gi;
+const BOLD_CLOSE_REGEX = /<\/(strong|b)>/gi;
+const ITALIC_OPEN_REGEX = /<(em|i)\b[^>]*>/gi;
+const ITALIC_CLOSE_REGEX = /<\/(em|i)>/gi;
+const UNDERLINE_TAG_REGEX = /<\/?u\b[^>]*>/gi;
+const IMAGE_TAG_REGEX = /<img\b([^>]*)>/gi;
+const LINK_TAG_REGEX = /<a\b[^>]*href=(['"])(.*?)\1[^>]*>(.*?)<\/a>/gi;
+const GENERIC_TAG_REGEX = /<[^>]+>/g;
+const HTML_ENTITY_MAP = {
+  '&nbsp;': ' ',
+  '&amp;': '&',
+  '&lt;': '<',
+  '&gt;': '>',
+  '&quot;': '"',
+  '&#39;': "'",
+};
 
 const normalizeLineBreaks = (value) => value.replace(/\r\n?/g, '\n');
 
@@ -19,85 +34,66 @@ const normalizeWhitespace = (value) =>
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 
-const stripZohoSignatureHtml = (value) => {
-  const signatureIndex = value.search(ZOHO_SIGNATURE_CLASS_REGEX);
+const decodeHtmlEntities = (value) =>
+  value.replace(/&nbsp;|&amp;|&lt;|&gt;|&quot;|&#39;/gi, (match) => HTML_ENTITY_MAP[match] || match);
 
-  if (signatureIndex === -1) {
-    return value;
-  }
-
-  const tagStartIndex = value.lastIndexOf('<', signatureIndex);
-
-  return value.slice(0, tagStartIndex >= 0 ? tagStartIndex : signatureIndex);
-};
-
-const htmlToPlainText = (value) =>
+const htmlFragmentToText = (value) =>
   normalizeWhitespace(
-    _.unescape(
-      stripZohoSignatureHtml(value)
-        .replace(HTML_LIST_ITEM_REGEX, '\n- ')
-        .replace(HTML_LIST_ITEM_CLOSE_REGEX, '')
-        .replace(HTML_BLOCK_BREAK_REGEX, '\n')
-        .replace(/<\/td>\s*<td\b[^>]*>/gi, ' | ')
-        .replace(HTML_TAG_REGEX, ' '),
+    decodeHtmlEntities(
+      value
+        .replace(LINE_BREAK_REGEX, '\n')
+        .replace(DOUBLE_BREAK_BLOCK_CLOSE_REGEX, '\n\n')
+        .replace(SINGLE_BREAK_BLOCK_CLOSE_REGEX, '\n')
+        .replace(LIST_ITEM_OPEN_REGEX, '\n- ')
+        .replace(LIST_ITEM_CLOSE_REGEX, '')
+        .replace(TABLE_CELL_CLOSE_REGEX, ' | ')
+        .replace(PARAGRAPH_TAG_REGEX, '\n\n')
+        .replace(BOLD_OPEN_REGEX, '**')
+        .replace(BOLD_CLOSE_REGEX, '**')
+        .replace(ITALIC_OPEN_REGEX, '*')
+        .replace(ITALIC_CLOSE_REGEX, '*')
+        .replace(UNDERLINE_TAG_REGEX, '')
+        .replace(GENERIC_TAG_REGEX, ' '),
     ),
   ).replace(/\n\n(?=- )/g, '\n');
 
-const stripQuotedReply = (value) => {
-  const match = REPLY_HEADER_REGEX.exec(value);
+const htmlToMarkdown = (value) => {
+  const markdown = value
+    .replace(
+      LINK_TAG_REGEX,
+      (_, __, href, text) => `[${htmlFragmentToText(text) || href}](${decodeHtmlEntities(href)})`,
+    )
+    .replace(IMAGE_TAG_REGEX, (_, attrs) => {
+      const srcMatch = attrs.match(/\bsrc=(['"])(.*?)\1/i);
+      const altMatch = attrs.match(/\balt=(['"])(.*?)\1/i);
+      const src = srcMatch ? decodeHtmlEntities(srcMatch[2]) : '';
+      const alt = altMatch ? htmlFragmentToText(altMatch[2]) : 'image';
 
-  if (!match) {
-    return value;
-  }
+      return src ? `![${alt || 'image'}](${src})` : '';
+    });
 
-  return value.slice(0, match.index).trim();
+  return htmlFragmentToText(markdown);
 };
-
-const stripSignature = (value) => {
-  const signatureMarker = SIGNATURE_MARKER_REGEX.exec(value);
-
-  if (signatureMarker) {
-    return value.slice(0, signatureMarker.index).trim();
-  }
-
-  const lines = value.split('\n');
-
-  for (let index = lines.length - 1; index >= 0; index -= 1) {
-    const line = lines[index].trim();
-
-    if (!line) {
-      continue;
-    }
-
-    if (SIGN_OFF_REGEX.test(line)) {
-      return lines.slice(0, index).join('\n').trim();
-    }
-  }
-
-  return value;
-};
-
-const cleanEmailText = (value) => stripSignature(stripQuotedReply(normalizeWhitespace(value)));
 
 const getDescriptionSource = (payload) => {
   if (_.isString(payload.html) && payload.html.trim()) {
     return {
       source: 'html',
-      value: cleanEmailText(htmlToPlainText(payload.html)),
+      value: htmlToMarkdown(payload.html),
     };
   }
 
   if (_.isString(payload.summary) && payload.summary.trim()) {
     return {
       source: 'summary',
-      value: cleanEmailText(payload.summary),
+      value: normalizeWhitespace(_.unescape(payload.summary)),
     };
   }
 
   if (_.isString(payload.content) && payload.content.trim()) {
     return {
       source: 'content',
-      value: cleanEmailText(payload.content),
+      value: normalizeWhitespace(_.unescape(payload.content)),
     };
   }
 
@@ -114,8 +110,7 @@ const getDescription = (payload) => {
 };
 
 module.exports = {
-  cleanEmailText,
   getDescription,
   getDescriptionSource,
-  htmlToPlainText,
+  htmlToMarkdown,
 };

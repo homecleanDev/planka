@@ -34,17 +34,7 @@ module.exports = {
 
   async fn(inputs) {
     const payload = _.isPlainObject(this.req.body) ? this.req.body : {};
-    const { source: descriptionSource, value: description } = getDescriptionSource(payload);
-
-    console.log(
-      '[Zoho webhook] payload:',
-      JSON.stringify(payload, null, 2),
-    );
-    console.log('[Zoho webhook] description:', {
-      source: descriptionSource,
-      length: _.isString(description) ? description.length : 0,
-      preview: _.isString(description) ? description.slice(0, 500) : null,
-    });
+    const { value: description } = getDescriptionSource(payload);
 
     const legacyProject = await Project.findOne({
       zohoWebhookToken: inputs.token,
