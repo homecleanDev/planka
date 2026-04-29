@@ -24,6 +24,24 @@ const buildLegacyWebhook = (project) => {
   };
 };
 
+const isZohoTestPayload = (payload) => {
+  const normalizedSubject = _.isString(payload.subject) ? payload.subject.trim().toLowerCase() : '';
+  const normalizedSummary = _.isString(payload.summary) ? payload.summary.trim().toLowerCase() : '';
+  const normalizedHtml = _.isString(payload.html) ? payload.html.trim().toLowerCase() : '';
+  const normalizedSender = _.isString(payload.sender) ? payload.sender.trim().toLowerCase() : '';
+  const normalizedFromAddress = _.isString(payload.fromAddress)
+    ? payload.fromAddress.trim().toLowerCase()
+    : '';
+
+  return (
+    normalizedSubject === 'subject' &&
+    normalizedSummary === 'sample summary' &&
+    normalizedHtml === 'sample html content' &&
+    normalizedSender === 'sample sender' &&
+    normalizedFromAddress === 'sample@zylker.com'
+  );
+};
+
 module.exports = {
   inputs: {
     token: {
@@ -34,6 +52,16 @@ module.exports = {
 
   async fn(inputs) {
     const payload = _.isPlainObject(this.req.body) ? this.req.body : {};
+
+    if (isZohoTestPayload(payload)) {
+      return {
+        item: {
+          skipped: true,
+          reason: 'zoho-test-payload',
+        },
+      };
+    }
+
     const { value: description } = getDescriptionSource(payload);
 
     const legacyProject = await Project.findOne({
