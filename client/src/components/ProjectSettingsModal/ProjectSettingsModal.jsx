@@ -21,7 +21,7 @@ const ProjectSettingsModal = React.memo(
     managers,
     allUsers,
     currentUser,
-    currentBoardLists,
+    projectBoards,
     currentBoardUsers,
     onUpdate,
     onBackgroundImageUpdate,
@@ -103,7 +103,7 @@ const ProjectSettingsModal = React.memo(
         render: () => (
           <ZohoWebhookPane
             items={zohoWebhooks}
-            lists={currentBoardLists}
+            boards={projectBoards}
             users={currentBoardUsers}
             currentUser={currentUser}
             onUpdate={onUpdate}
@@ -142,7 +142,7 @@ ProjectSettingsModal.propTypes = {
   managers: PropTypes.array.isRequired,
   allUsers: PropTypes.array.isRequired,
   currentUser: PropTypes.object,
-  currentBoardLists: PropTypes.array.isRequired,
+  projectBoards: PropTypes.array.isRequired,
   currentBoardUsers: PropTypes.array.isRequired,
   /* eslint-enable react/forbid-prop-types */
   onUpdate: PropTypes.func.isRequired,

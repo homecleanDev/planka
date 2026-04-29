@@ -5,13 +5,14 @@ import selectors from '../selectors';
 import entryActions from '../entry-actions';
 import ProjectSettingsModal from '../components/ProjectSettingsModal';
 
-const selectListById = selectors.makeSelectListById();
-
 const mapStateToProps = (state) => {
   const users = selectors.selectUsers(state);
   const currentUser = selectors.selectCurrentUser(state);
   const boardMemberships = selectors.selectMembershipsForCurrentBoard(state) || [];
-  const listIds = selectors.selectListIdsForCurrentBoard(state) || [];
+  const currentProject = selectors.selectCurrentProject(state);
+  const projectsToLists = selectors.selectProjectsToListsForCurrentUser(state) || [];
+  const currentProjectToLists =
+    currentProject && projectsToLists.find((project) => project.id === currentProject.id);
 
   const {
     name,
@@ -52,7 +53,7 @@ const mapStateToProps = (state) => {
     managers,
     allUsers: users,
     currentUser,
-    currentBoardLists: listIds.map((id) => selectListById(state, id)).filter(Boolean),
+    projectBoards: (currentProjectToLists && currentProjectToLists.boards) || [],
     currentBoardUsers: boardMemberships.map((membership) => membership.user),
   };
 };

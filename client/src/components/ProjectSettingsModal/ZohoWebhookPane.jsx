@@ -9,14 +9,16 @@ import styles from './ZohoWebhookPane.module.scss';
 const createWebhook = (currentUserId) => ({
   id: nanoid(),
   token: nanoid(32),
+  boardId: null,
   listId: '',
   userIds: [],
   creatorUserId: currentUserId,
 });
 
-const normalizeWebhook = (item, currentUserId) => ({
+const normalizeWebhook = (item, currentUserId, listToBoardId) => ({
   id: item.id || nanoid(),
   token: (item.token || '').trim(),
+  boardId: item.boardId || listToBoardId[item.listId] || null,
   listId: item.listId || null,
   userIds: [...new Set(item.userIds || [])].filter(Boolean),
   creatorUserId: item.creatorUserId || currentUserId,
@@ -30,32 +32,42 @@ const buildWebhookUrl = (token) => {
   return `${window.location.origin}/hook/zoho/${token}`;
 };
 
-const ZohoWebhookPane = React.memo(({ items, lists, users, currentUser, onUpdate }) => {
+const ZohoWebhookPane = React.memo(({ items, boards, users, currentUser, onUpdate }) => {
+  const listToBoardId = useMemo(
+    () =>
+      boards.reduce((result, board) => {
+        board.lists.forEach((list) => {
+          // eslint-disable-next-line no-param-reassign
+          result[list.id] = board.id;
+        });
+
+        return result;
+      }, {}),
+    [boards],
+  );
+
+  const normalizeItems = useCallback(
+    (nextItems) =>
+      nextItems.map((item) => normalizeWebhook(item, currentUser.id, listToBoardId)),
+    [currentUser.id, listToBoardId],
+  );
+
   const [webhooks, setWebhooks] = useState(() =>
-    (items.length > 0 ? items : [createWebhook(currentUser.id)]).map((item) =>
-      normalizeWebhook(item, currentUser.id),
-    ),
+    normalizeItems(items.length > 0 ? items : [createWebhook(currentUser.id)]),
   );
 
   useEffect(() => {
-    setWebhooks(
-      (items.length > 0 ? items : [createWebhook(currentUser.id)]).map((item) =>
-        normalizeWebhook(item, currentUser.id),
-      ),
-    );
-  }, [items, currentUser.id]);
+    setWebhooks(normalizeItems(items.length > 0 ? items : [createWebhook(currentUser.id)]));
+  }, [items, currentUser.id, normalizeItems]);
 
   const normalizedWebhooks = useMemo(
-    () => webhooks.map((item) => normalizeWebhook(item, currentUser.id)),
-    [webhooks, currentUser.id],
+    () => normalizeItems(webhooks),
+    [webhooks, normalizeItems],
   );
 
   const normalizedDefaults = useMemo(
-    () =>
-      (items.length > 0 ? items : [createWebhook(currentUser.id)]).map((item) =>
-        normalizeWebhook(item, currentUser.id),
-      ),
-    [items, currentUser.id],
+    () => normalizeItems(items.length > 0 ? items : [createWebhook(currentUser.id)]),
+    [items, currentUser.id, normalizeItems],
   );
 
   const persistedWebhookIds = useMemo(
@@ -63,14 +75,14 @@ const ZohoWebhookPane = React.memo(({ items, lists, users, currentUser, onUpdate
     [items],
   );
 
-  const listOptions = useMemo(
+  const boardOptions = useMemo(
     () =>
-      lists.map((item) => ({
+      boards.map((item) => ({
         key: item.id,
         text: item.name,
         value: item.id,
       })),
-    [lists],
+    [boards],
   );
 
   const userOptions = useMemo(
@@ -91,6 +103,9 @@ const ZohoWebhookPane = React.memo(({ items, lists, users, currentUser, onUpdate
           ? {
               ...item,
               [name]: value,
+              ...(name === 'boardId' && {
+                listId: null,
+              }),
             }
           : item,
       ),
@@ -156,12 +171,33 @@ const ZohoWebhookPane = React.memo(({ items, lists, users, currentUser, onUpdate
               fluid
               selection
               required
+              name="boardId"
+              label="Target tab"
+              options={boardOptions}
+              value={item.boardId || undefined}
+              placeholder="Select tab"
+              disabled={boardOptions.length === 0}
+              onChange={(event, data) => handleFieldChange(index, data)}
+            />
+
+            <Form.Dropdown
+              fluid
+              selection
+              required
               name="listId"
               label="Target list"
-              options={listOptions}
+              options={
+                boards
+                  .find((board) => board.id === item.boardId)
+                  ?.lists.map((list) => ({
+                    key: list.id,
+                    text: list.name,
+                    value: list.id,
+                  })) || []
+              }
               value={item.listId || undefined}
               placeholder="Select list"
-              disabled={listOptions.length === 0}
+              disabled={!item.boardId}
               onChange={(event, data) => handleFieldChange(index, data)}
             />
 
@@ -205,15 +241,22 @@ ZohoWebhookPane.propTypes = {
     PropTypes.shape({
       id: PropTypes.string,
       token: PropTypes.string,
+      boardId: PropTypes.string,
       listId: PropTypes.string,
       userIds: PropTypes.arrayOf(PropTypes.string),
       creatorUserId: PropTypes.string,
     }),
   ).isRequired,
-  lists: PropTypes.arrayOf(
+  boards: PropTypes.arrayOf(
     PropTypes.shape({
       id: PropTypes.string.isRequired,
       name: PropTypes.string.isRequired,
+      lists: PropTypes.arrayOf(
+        PropTypes.shape({
+          id: PropTypes.string.isRequired,
+          name: PropTypes.string.isRequired,
+        }),
+      ).isRequired,
     }),
   ).isRequired,
   users: PropTypes.arrayOf(
