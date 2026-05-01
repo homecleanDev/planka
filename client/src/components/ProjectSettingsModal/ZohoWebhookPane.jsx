@@ -120,26 +120,50 @@ const ZohoWebhookPane = React.memo(({ items, boards, users, currentUser, onUpdat
     setWebhooks((prev) => prev.filter((_, currentIndex) => currentIndex !== index));
   }, []);
 
-  const handleSubmit = useCallback(() => {
-    onUpdate({
-      zohoWebhooks: normalizedWebhooks
+  const handleSaveWebhook = useCallback(
+    (index) => {
+      const selectedWebhook = normalizedWebhooks[index];
+      if (!selectedWebhook || !selectedWebhook.token || !selectedWebhook.listId) {
+        return;
+      }
+
+      const nextZohoWebhooks = normalizedWebhooks
+        .filter((item, currentIndex) =>
+          currentIndex === index || persistedWebhookIds.has(item.id),
+        )
         .filter((item) => item.token && item.listId)
         .map((item) => ({
           ...item,
           creatorUserId: item.creatorUserId || currentUser.id,
-        })),
-    });
-  }, [currentUser.id, normalizedWebhooks, onUpdate]);
+        }));
 
-  const hasInvalidWebhook = normalizedWebhooks.some((item) => !item.token || !item.listId);
-  const isSaveDisabled =
-    hasInvalidWebhook ||
-    dequal(normalizedWebhooks, normalizedDefaults) ||
-    normalizedWebhooks.length === 0;
+      onUpdate({
+        zohoWebhooks: nextZohoWebhooks,
+      });
+    },
+    [currentUser.id, normalizedWebhooks, onUpdate, persistedWebhookIds],
+  );
+
+  const isWebhookSaveDisabled = useCallback(
+    (index) => {
+      const webhook = normalizedWebhooks[index];
+      if (!webhook || !webhook.token || !webhook.listId) {
+        return true;
+      }
+
+      const defaultWebhook = normalizedDefaults.find((item) => item.id === webhook.id);
+      if (!defaultWebhook) {
+        return false;
+      }
+
+      return dequal(webhook, defaultWebhook);
+    },
+    [normalizedDefaults, normalizedWebhooks],
+  );
 
   return (
     <Tab.Pane attached={false} className={styles.wrapper}>
-      <Form onSubmit={handleSubmit}>
+      <Form>
         <Message info>
           <Message.Header>Zoho Mail mapping</Message.Header>
           <p>
@@ -222,6 +246,16 @@ const ZohoWebhookPane = React.memo(({ items, boards, users, currentUser, onUpdat
                 readOnly
               />
             )}
+
+            <div className={styles.webhookActions}>
+              <Button
+                type="button"
+                positive
+                content="Save"
+                disabled={isWebhookSaveDisabled(index)}
+                onClick={() => handleSaveWebhook(index)}
+              />
+            </div>
           </Segment>
         ))}
 
@@ -229,7 +263,6 @@ const ZohoWebhookPane = React.memo(({ items, boards, users, currentUser, onUpdat
           <Button type="button" onClick={handleAddWebhook}>
             Add webhook
           </Button>
-          <Button positive content="Save" disabled={isSaveDisabled} />
         </div>
       </Form>
     </Tab.Pane>
