@@ -14,7 +14,7 @@ services:
       - "1337"
     environment:
       - BASE_URL=${BASE_URL:-https://planka.homeclean.co.uk}
-      - DATABASE_URL=postgresql://user:password@postgres:5432/planka
+      - DATABASE_URL=${DATABASE_URL}
       - SECRET_KEY=notsecretkey
       - KNEX_REJECT_UNAUTHORIZED_SSL_CERTIFICATE=false
       - PGSSLMODE=require
