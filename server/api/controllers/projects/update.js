@@ -96,6 +96,31 @@ const zohoWebhooksValidator = (value) => {
   );
 };
 
+const zohoConnectionValidator = (value) => {
+  if (_.isNull(value)) {
+    return true;
+  }
+
+  if (!_.isPlainObject(value)) {
+    return false;
+  }
+
+  return (
+    (_.isUndefined(value.accountId) || _.isString(value.accountId)) &&
+    (_.isUndefined(value.accessToken) || _.isString(value.accessToken)) &&
+    (_.isUndefined(value.refreshToken) || _.isString(value.refreshToken)) &&
+    (_.isUndefined(value.accessTokenExpiresAt) ||
+      _.isNull(value.accessTokenExpiresAt) ||
+      _.isString(value.accessTokenExpiresAt)) &&
+    (_.isUndefined(value.connectedByUserId) ||
+      _.isNull(value.connectedByUserId) ||
+      (_.isString(value.connectedByUserId) && /^[0-9]+$/.test(value.connectedByUserId))) &&
+    (_.isUndefined(value.connectedAt) ||
+      _.isNull(value.connectedAt) ||
+      _.isString(value.connectedAt))
+  );
+};
+
 module.exports = {
   inputs: {
     id: {
@@ -126,6 +151,10 @@ module.exports = {
     zohoWebhooks: {
       type: 'json',
       custom: zohoWebhooksValidator,
+    },
+    zohoConnection: {
+      type: 'json',
+      custom: zohoConnectionValidator,
     },
     zohoWebhookToken: {
       type: 'string',
@@ -171,6 +200,7 @@ module.exports = {
 
     const hasZohoWebhookChange =
       !_.isUndefined(inputs.zohoWebhooks) ||
+      !_.isUndefined(inputs.zohoConnection) ||
       !_.isUndefined(inputs.zohoWebhookToken) ||
       !_.isUndefined(inputs.zohoWebhookListId) ||
       !_.isUndefined(inputs.zohoWebhookUserIds) ||
@@ -215,6 +245,7 @@ module.exports = {
         'backgroundImage',
         'member_card_deletion_enabled',
         'cardFields',
+        'zohoConnection',
         'zohoWebhookToken',
         'zohoWebhookListId',
         'zohoWebhookUserIds',

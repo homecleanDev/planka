@@ -61,4 +61,15 @@ module.exports.custom = {
 
   slackBotToken: process.env.SLACK_BOT_TOKEN,
   slackChannelId: process.env.SLACK_CHANNEL_ID,
+
+  zohoMailApiBaseUrl: process.env.ZOHO_MAIL_API_BASE_URL || 'https://mail.zoho.com',
+  zohoMailAccountId: process.env.ZOHO_MAIL_ACCOUNT_ID,
+  zohoMailOAuthToken: process.env.ZOHO_MAIL_OAUTH_TOKEN,
+
+  zohoOauthAccountsBaseUrl: process.env.ZOHO_OAUTH_ACCOUNTS_BASE_URL || 'https://accounts.zoho.com',
+  zohoOauthClientId: process.env.ZOHO_OAUTH_CLIENT_ID,
+  zohoOauthClientSecret: process.env.ZOHO_OAUTH_CLIENT_SECRET,
+  zohoOauthRedirectUri:
+    process.env.ZOHO_OAUTH_REDIRECT_URI || `${process.env.BASE_URL}/api/zoho/callback`,
+  zohoOauthScope: process.env.ZOHO_OAUTH_SCOPE || 'ZohoMail.messages.READ,ZohoMail.accounts.READ',
 };

@@ -1,6 +1,6 @@
 const { expect } = require('chai');
 
-const { getDescription, htmlToMarkdown } = require('../../utils/zohoWebhook');
+const { getDescription, getThreadMessageIds, htmlToMarkdown } = require('../../utils/zohoWebhook');
 
 describe('zohoWebhook utils', () => {
   describe('#htmlToMarkdown()', () => {
@@ -47,6 +47,45 @@ describe('zohoWebhook utils', () => {
       });
 
       expect(result).to.equal('Line 1\n\nLine 2');
+    });
+  });
+
+  describe('#getThreadMessageIds()', () => {
+    it('extracts current and parent message ids from payload + headers', () => {
+      const result = getThreadMessageIds(
+        {
+          messageIdString: '1776434787752162600',
+        },
+        {
+          'Message-Id': ['<new-message@example.com>'],
+          'In-Reply-To': ['<parent-message@example.com>'],
+          References: ['<parent-message@example.com> <root-message@example.com>'],
+        },
+      );
+
+      expect(result.isReply).to.equal(true);
+      expect(result.currentMessageIds).to.deep.equal([
+        '1776434787752162600',
+        'new-message@example.com',
+      ]);
+      expect(result.parentMessageIds).to.deep.equal([
+        'parent-message@example.com',
+        'root-message@example.com',
+      ]);
+    });
+
+    it('returns non-reply when reply headers are missing', () => {
+      const result = getThreadMessageIds(
+        {
+          messageIdString: '1776432842013159500',
+        },
+        {
+          'Message-Id': ['<first-message@example.com>'],
+        },
+      );
+
+      expect(result.isReply).to.equal(false);
+      expect(result.parentMessageIds).to.deep.equal([]);
     });
   });
 });

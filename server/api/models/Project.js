@@ -70,6 +70,10 @@ module.exports = {
       type: 'json',
       columnName: 'zoho_webhooks',
     },
+    zohoConnection: {
+      type: 'json',
+      columnName: 'zoho_connection',
+    },
     zohoWebhookToken: {
       type: 'string',
       allowNull: true,

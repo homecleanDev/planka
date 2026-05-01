@@ -23,6 +23,7 @@ const HTML_ENTITY_MAP = {
   '&quot;': '"',
   '&#39;': "'",
 };
+const RFC_MESSAGE_ID_REGEX = /<([^>]+)>/g;
 
 const normalizeLineBreaks = (value) => value.replace(/\r\n?/g, '\n');
 
@@ -35,7 +36,10 @@ const normalizeWhitespace = (value) =>
     .trim();
 
 const decodeHtmlEntities = (value) =>
-  value.replace(/&nbsp;|&amp;|&lt;|&gt;|&quot;|&#39;/gi, (match) => HTML_ENTITY_MAP[match] || match);
+  value.replace(
+    /&nbsp;|&amp;|&lt;|&gt;|&quot;|&#39;/gi,
+    (match) => HTML_ENTITY_MAP[match] || match,
+  );
 
 const htmlFragmentToText = (value) =>
   normalizeWhitespace(
@@ -59,11 +63,14 @@ const htmlFragmentToText = (value) =>
 
 const htmlToMarkdown = (value) => {
   const markdown = value
-    .replace(
-      LINK_TAG_REGEX,
-      (_, __, href, text) => `[${htmlFragmentToText(text) || href}](${decodeHtmlEntities(href)})`,
-    )
-    .replace(IMAGE_TAG_REGEX, (_, attrs) => {
+    .replace(LINK_TAG_REGEX, (...args) => {
+      const href = args[2];
+      const text = args[3];
+
+      return `[${htmlFragmentToText(text) || href}](${decodeHtmlEntities(href)})`;
+    })
+    .replace(IMAGE_TAG_REGEX, (...args) => {
+      const attrs = args[1];
       const srcMatch = attrs.match(/\bsrc=(['"])(.*?)\1/i);
       const altMatch = attrs.match(/\balt=(['"])(.*?)\1/i);
       const src = srcMatch ? decodeHtmlEntities(srcMatch[2]) : '';
@@ -109,8 +116,88 @@ const getDescription = (payload) => {
   return value;
 };
 
+const normalizeMessageId = (value) => {
+  if (!_.isString(value)) {
+    return null;
+  }
+
+  const normalized = value.trim().replace(/^<|>$/g, '').toLowerCase();
+
+  return normalized || null;
+};
+
+const extractMessageIds = (...values) => {
+  const result = new Set();
+
+  values.filter(_.isString).forEach((value) => {
+    let match = RFC_MESSAGE_ID_REGEX.exec(value);
+    let hasRfcIds = false;
+
+    while (match) {
+      hasRfcIds = true;
+
+      const normalized = normalizeMessageId(match[1]);
+      if (normalized) {
+        result.add(normalized);
+      }
+
+      match = RFC_MESSAGE_ID_REGEX.exec(value);
+    }
+
+    if (!hasRfcIds) {
+      const directId = normalizeMessageId(value);
+      if (directId) {
+        result.add(directId);
+      }
+    }
+
+    RFC_MESSAGE_ID_REGEX.lastIndex = 0;
+  });
+
+  return [...result];
+};
+
+const getHeaderValues = (headerContent, key) => {
+  if (!_.isPlainObject(headerContent)) {
+    return [];
+  }
+
+  const matchingKey = Object.keys(headerContent).find(
+    (headerKey) => headerKey.toLowerCase() === key.toLowerCase(),
+  );
+
+  if (!matchingKey) {
+    return [];
+  }
+
+  const value = headerContent[matchingKey];
+
+  return Array.isArray(value) ? value : [];
+};
+
+const getThreadMessageIds = (payload, headerContent) => {
+  const currentMessageIds = extractMessageIds(
+    payload.messageIdString,
+    _.isFinite(payload.messageId) ? String(payload.messageId) : payload.messageId,
+    ...getHeaderValues(headerContent, 'Message-Id'),
+  );
+
+  const parentMessageIds = extractMessageIds(
+    ...getHeaderValues(headerContent, 'In-Reply-To'),
+    ...getHeaderValues(headerContent, 'References'),
+  );
+
+  return {
+    currentMessageIds,
+    parentMessageIds,
+    isReply: parentMessageIds.length > 0,
+  };
+};
+
 module.exports = {
   getDescription,
   getDescriptionSource,
   htmlToMarkdown,
+  extractMessageIds,
+  getThreadMessageIds,
 };

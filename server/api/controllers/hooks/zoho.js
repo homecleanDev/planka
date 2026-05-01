@@ -1,7 +1,7 @@
 const POSITION_GAP = 65535;
 
 const EMAIL_REGEX = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
-const { getDescriptionSource } = require('../../../utils/zohoWebhook');
+const { getDescriptionSource, getThreadMessageIds } = require('../../../utils/zohoWebhook');
 
 const extractEmails = (...values) =>
   values
@@ -41,7 +41,65 @@ const isZohoTestPayload = (payload) => {
     normalizedFromAddress === 'sample@zylker.com'
   );
 };
+const getPayloadMessageId = (payload) => {
+  if (_.isString(payload.messageIdString) && payload.messageIdString.trim()) {
+    return payload.messageIdString.trim();
+  }
 
+  if (_.isFinite(payload.messageId)) {
+    return String(payload.messageId);
+  }
+
+  if (_.isString(payload.messageId) && payload.messageId.trim()) {
+    return payload.messageId.trim();
+  }
+
+  return null;
+};
+
+const saveMessageIds = async (projectId, cardId, messageIds) =>
+  Promise.all(
+    messageIds.map((externalMessageId) =>
+      ZohoWebhookMessage.create({
+        projectId,
+        cardId,
+        externalMessageId,
+      }).tolerate('E_UNIQUE'),
+    ),
+  );
+
+const refreshZohoAccessToken = async (refreshToken) => {
+  const refreshUrl = new URL('/oauth/v2/token', sails.config.custom.zohoOauthAccountsBaseUrl);
+
+  refreshUrl.searchParams.set('grant_type', 'refresh_token');
+  refreshUrl.searchParams.set('refresh_token', refreshToken);
+  refreshUrl.searchParams.set('client_id', sails.config.custom.zohoOauthClientId);
+  refreshUrl.searchParams.set('client_secret', sails.config.custom.zohoOauthClientSecret);
+
+  const response = await fetch(refreshUrl, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    return null;
+  }
+
+  const body = await response.json();
+  const accessToken = body.access_token;
+  const expiresIn = body.expires_in || body.expires_in_sec;
+
+  if (!accessToken) {
+    return null;
+  }
+
+  return {
+    accessToken,
+    expiresAt: expiresIn ? new Date(Date.now() + Number(expiresIn) * 1000).toISOString() : null,
+  };
+};
 module.exports = {
   inputs: {
     token: {
@@ -62,7 +120,9 @@ module.exports = {
       };
     }
 
-    const { value: description } = getDescriptionSource(payload);
+    const { value: rawDescription } = getDescriptionSource(payload);
+    const description =
+      _.isString(rawDescription) && rawDescription.trim().length === 0 ? null : rawDescription;
 
     const legacyProject = await Project.findOne({
       zohoWebhookToken: inputs.token,
@@ -137,6 +197,122 @@ module.exports = {
       return this.res.serverError();
     }
 
+    const folderId =
+      _.isFinite(payload.folderId) || _.isString(payload.folderId)
+        ? String(payload.folderId)
+        : null;
+    const messageId = getPayloadMessageId(payload);
+
+    const projectZohoConnection = _.isPlainObject(project.zohoConnection)
+      ? project.zohoConnection
+      : null;
+
+    let zohoAccountId = projectZohoConnection?.accountId || sails.config.custom.zohoMailAccountId;
+    let zohoAccessToken =
+      projectZohoConnection?.accessToken || sails.config.custom.zohoMailOAuthToken;
+    const zohoRefreshToken = projectZohoConnection?.refreshToken;
+    const isZohoAccessTokenExpired =
+      projectZohoConnection?.accessTokenExpiresAt &&
+      new Date(projectZohoConnection.accessTokenExpiresAt).getTime() <= Date.now() + 60 * 1000;
+
+    if ((!zohoAccessToken || isZohoAccessTokenExpired) && zohoRefreshToken) {
+      const refreshedToken = await refreshZohoAccessToken(zohoRefreshToken);
+
+      if (refreshedToken) {
+        zohoAccessToken = refreshedToken.accessToken;
+
+        if (projectZohoConnection) {
+          const nextZohoConnection = {
+            ...projectZohoConnection,
+            accessToken: refreshedToken.accessToken,
+            accessTokenExpiresAt: refreshedToken.expiresAt,
+          };
+
+          const updatedProject = await sails.helpers.projects.updateOne.with({
+            record: project,
+            values: {
+              zohoConnection: nextZohoConnection,
+            },
+            request: this.req,
+          });
+
+          if (updatedProject) {
+            project.zohoConnection = nextZohoConnection;
+            zohoAccountId = nextZohoConnection.accountId || zohoAccountId;
+          }
+        }
+      }
+    }
+
+    let headerContent = null;
+    if (zohoAccountId && zohoAccessToken && folderId && messageId) {
+      try {
+        headerContent = await sails.helpers.utils.fetchZohoMessageHeaders.with({
+          baseUrl: sails.config.custom.zohoMailApiBaseUrl,
+          accountId: zohoAccountId,
+          oAuthToken: zohoAccessToken,
+          folderId,
+          messageId,
+        });
+      } catch (error) {
+        sails.log.warn('Unable to fetch Zoho message headers', error.message);
+      }
+    }
+
+    const { currentMessageIds, parentMessageIds, isReply } = getThreadMessageIds(
+      payload,
+      headerContent,
+    );
+
+    if (isReply && parentMessageIds.length > 0) {
+      const links = await ZohoWebhookMessage.find({
+        projectId: project.id,
+        externalMessageId: {
+          in: parentMessageIds,
+        },
+      }).sort('createdAt DESC');
+
+      if (links.length > 0) {
+        const {
+          card,
+          board: replyBoard,
+          project: replyProject,
+        } = await sails.helpers.cards
+          .getProjectPath({
+            id: links[0].cardId,
+          })
+          .intercept('pathNotFound', () => null);
+
+        if (card && replyBoard && replyProject && replyProject.id === project.id) {
+          const commentText = description || '(No content)';
+
+          await sails.helpers.actions.createOne.with({
+            board: replyBoard,
+            values: {
+              type: Action.Types.COMMENT_CARD,
+              data: {
+                text: commentText,
+              },
+              card,
+              user: creatorUser,
+            },
+            request: this.req,
+          });
+
+          if (currentMessageIds.length > 0) {
+            await saveMessageIds(project.id, card.id, currentMessageIds);
+          }
+
+          return {
+            item: {
+              id: card.id,
+              mode: 'comment',
+            },
+          };
+        }
+      }
+    }
+
     const cards = await sails.helpers.lists.getCards(list.id);
     const lastCard = cards[cards.length - 1];
 
@@ -192,9 +368,62 @@ module.exports = {
       ),
     );
 
+    if (zohoAccountId && zohoAccessToken && folderId && messageId) {
+      try {
+        sails.log.info(
+          'PlankaZoho:attachment import-start',
+          JSON.stringify({
+            projectId: project.id,
+            cardId: card.id,
+            folderId,
+            messageId,
+            hasAttachment: payload.hasAttachment,
+          }),
+        );
+
+        const uploadedAttachments = await sails.helpers.utils.fetchZohoMessageAttachments.with({
+          baseUrl: sails.config.custom.zohoMailApiBaseUrl,
+          accountId: zohoAccountId,
+          oAuthToken: zohoAccessToken,
+          folderId,
+          messageId,
+          payload,
+        });
+
+        await Promise.all(
+          uploadedAttachments.map((fileData) =>
+            sails.helpers.attachments.createOne.with({
+              values: {
+                ...fileData,
+                card,
+                creatorUser,
+              },
+              request: this.req,
+            }),
+          ),
+        );
+
+        sails.log.info(
+          'PlankaZoho:attachment card-attachments-created',
+          JSON.stringify({
+            projectId: project.id,
+            cardId: card.id,
+            count: uploadedAttachments.length,
+          }),
+        );
+      } catch (error) {
+        sails.log.warn('PlankaZoho:attachment import-error', error.message);
+      }
+    }
+
+    if (currentMessageIds.length > 0) {
+      await saveMessageIds(project.id, card.id, currentMessageIds);
+    }
+
     return {
       item: {
         id: card.id,
+        mode: 'card',
       },
     };
   },

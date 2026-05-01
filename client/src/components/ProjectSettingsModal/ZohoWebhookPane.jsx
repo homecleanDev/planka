@@ -4,6 +4,8 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import { Button, Form, Icon, Message, Segment, Tab } from 'semantic-ui-react';
 
+import Config from '../../constants/Config';
+import { getAccessToken } from '../../utils/access-token-storage';
 import styles from './ZohoWebhookPane.module.scss';
 
 const createWebhook = (currentUserId) => ({
@@ -32,164 +34,211 @@ const buildWebhookUrl = (token) => {
   return `${window.location.origin}/hook/zoho/${token}`;
 };
 
-const ZohoWebhookPane = React.memo(({ items, boards, users, currentUser, onUpdate }) => {
-  const listToBoardId = useMemo(
-    () =>
-      boards.reduce((result, board) => {
-        board.lists.forEach((list) => {
-          // eslint-disable-next-line no-param-reassign
-          result[list.id] = board.id;
-        });
+const ZohoWebhookPane = React.memo(
+  ({ projectId, items, boards, users, currentUser, zohoConnection, onUpdate }) => {
+    const listToBoardId = useMemo(
+      () =>
+        boards.reduce((result, board) => {
+          board.lists.forEach((list) => {
+            // eslint-disable-next-line no-param-reassign
+            result[list.id] = board.id;
+          });
 
-        return result;
-      }, {}),
-    [boards],
-  );
-
-  const normalizeItems = useCallback(
-    (nextItems) =>
-      nextItems.map((item) => normalizeWebhook(item, currentUser.id, listToBoardId)),
-    [currentUser.id, listToBoardId],
-  );
-
-  const [webhooks, setWebhooks] = useState(() =>
-    normalizeItems(items.length > 0 ? items : [createWebhook(currentUser.id)]),
-  );
-
-  useEffect(() => {
-    setWebhooks(normalizeItems(items.length > 0 ? items : [createWebhook(currentUser.id)]));
-  }, [items, currentUser.id, normalizeItems]);
-
-  const normalizedWebhooks = useMemo(
-    () => normalizeItems(webhooks),
-    [webhooks, normalizeItems],
-  );
-
-  const normalizedDefaults = useMemo(
-    () => normalizeItems(items.length > 0 ? items : [createWebhook(currentUser.id)]),
-    [items, currentUser.id, normalizeItems],
-  );
-
-  const persistedWebhookIds = useMemo(
-    () => new Set(items.map((item) => item.id).filter(Boolean)),
-    [items],
-  );
-
-  const boardOptions = useMemo(
-    () =>
-      boards.map((item) => ({
-        key: item.id,
-        text: item.name,
-        value: item.id,
-      })),
-    [boards],
-  );
-
-  const userOptions = useMemo(
-    () =>
-      users.map((user) => ({
-        key: user.id,
-        text: user.name,
-        value: user.id,
-        description: user.email,
-      })),
-    [users],
-  );
-
-  const handleFieldChange = useCallback((index, { name, value }) => {
-    setWebhooks((prev) =>
-      prev.map((item, currentIndex) =>
-        currentIndex === index
-          ? {
-              ...item,
-              [name]: value,
-              ...(name === 'boardId' && {
-                listId: null,
-              }),
-            }
-          : item,
-      ),
+          return result;
+        }, {}),
+      [boards],
     );
-  }, []);
 
-  const handleAddWebhook = useCallback(() => {
-    setWebhooks((prev) => [...prev, createWebhook(currentUser.id)]);
-  }, [currentUser.id]);
+    const normalizeItems = useCallback(
+      (nextItems) =>
+        nextItems.map((item) => normalizeWebhook(item, currentUser.id, listToBoardId)),
+      [currentUser.id, listToBoardId],
+    );
 
-  const handleRemoveWebhook = useCallback((index) => {
-    setWebhooks((prev) => prev.filter((_, currentIndex) => currentIndex !== index));
-  }, []);
+    const [webhooks, setWebhooks] = useState(() =>
+      normalizeItems(items.length > 0 ? items : [createWebhook(currentUser.id)]),
+    );
 
-  const handleSaveWebhook = useCallback(
-    (index) => {
-      const selectedWebhook = normalizedWebhooks[index];
-      if (!selectedWebhook || !selectedWebhook.token || !selectedWebhook.listId) {
+    useEffect(() => {
+      setWebhooks(normalizeItems(items.length > 0 ? items : [createWebhook(currentUser.id)]));
+    }, [items, currentUser.id, normalizeItems]);
+
+    const normalizedWebhooks = useMemo(() => normalizeItems(webhooks), [webhooks, normalizeItems]);
+
+    const normalizedDefaults = useMemo(
+      () => normalizeItems(items.length > 0 ? items : [createWebhook(currentUser.id)]),
+      [items, currentUser.id, normalizeItems],
+    );
+
+    const persistedWebhookIds = useMemo(
+      () => new Set(items.map((item) => item.id).filter(Boolean)),
+      [items],
+    );
+
+    const boardOptions = useMemo(
+      () =>
+        boards.map((item) => ({
+          key: item.id,
+          text: item.name,
+          value: item.id,
+        })),
+      [boards],
+    );
+
+    const userOptions = useMemo(
+      () =>
+        users.map((user) => ({
+          key: user.id,
+          text: user.name,
+          value: user.id,
+          description: user.email,
+        })),
+      [users],
+    );
+
+    const handleFieldChange = useCallback((index, { name, value }) => {
+      setWebhooks((prev) =>
+        prev.map((item, currentIndex) =>
+          currentIndex === index
+            ? {
+                ...item,
+                [name]: value,
+                ...(name === 'boardId' && {
+                  listId: null,
+                }),
+              }
+            : item,
+        ),
+      );
+    }, []);
+
+    const handleAddWebhook = useCallback(() => {
+      setWebhooks((prev) => [...prev, createWebhook(currentUser.id)]);
+    }, [currentUser.id]);
+
+    const handleRemoveWebhook = useCallback((index) => {
+      setWebhooks((prev) => prev.filter((_, currentIndex) => currentIndex !== index));
+    }, []);
+
+    const handleSaveWebhook = useCallback(
+      (index) => {
+        const selectedWebhook = normalizedWebhooks[index];
+        if (!selectedWebhook || !selectedWebhook.token || !selectedWebhook.listId) {
+          return;
+        }
+
+        const nextZohoWebhooks = normalizedWebhooks
+          .filter((item, currentIndex) =>
+            currentIndex === index || persistedWebhookIds.has(item.id),
+          )
+          .filter((item) => item.token && item.listId)
+          .map((item) => ({
+            ...item,
+            creatorUserId: item.creatorUserId || currentUser.id,
+          }));
+
+        onUpdate({
+          zohoWebhooks: nextZohoWebhooks,
+        });
+      },
+      [currentUser.id, normalizedWebhooks, onUpdate, persistedWebhookIds],
+    );
+
+    const handleConnectZoho = useCallback(async () => {
+      const accessToken = getAccessToken();
+      if (!accessToken) {
         return;
       }
 
-      const nextZohoWebhooks = normalizedWebhooks
-        .filter((item, currentIndex) =>
-          currentIndex === index || persistedWebhookIds.has(item.id),
-        )
-        .filter((item) => item.token && item.listId)
-        .map((item) => ({
-          ...item,
-          creatorUserId: item.creatorUserId || currentUser.id,
-        }));
-
-      onUpdate({
-        zohoWebhooks: nextZohoWebhooks,
+      const query = new URLSearchParams({
+        projectId,
+        returnUrl: window.location.href,
       });
-    },
-    [currentUser.id, normalizedWebhooks, onUpdate, persistedWebhookIds],
-  );
 
-  const isWebhookSaveDisabled = useCallback(
-    (index) => {
-      const webhook = normalizedWebhooks[index];
-      if (!webhook || !webhook.token || !webhook.listId) {
-        return true;
+      const response = await fetch(`${Config.SERVER_BASE_URL}/api/zoho/connect?${query.toString()}`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        return;
       }
 
-      const defaultWebhook = normalizedDefaults.find((item) => item.id === webhook.id);
-      if (!defaultWebhook) {
-        return false;
+      const body = await response.json();
+      if (body?.item?.authUrl) {
+        window.location.href = body.item.authUrl;
       }
+    }, [projectId]);
 
-      return dequal(webhook, defaultWebhook);
-    },
-    [normalizedDefaults, normalizedWebhooks],
-  );
+    const isWebhookSaveDisabled = useCallback(
+      (index) => {
+        const webhook = normalizedWebhooks[index];
+        if (!webhook || !webhook.token || !webhook.listId) {
+          return true;
+        }
 
-  return (
-    <Tab.Pane attached={false} className={styles.wrapper}>
-      <Form>
-        <Message info>
-          <Message.Header>Zoho Mail mapping</Message.Header>
-          <p>
-            Incoming payload uses <code>subject</code> for the card title and <code>summary</code>{' '}
-            or <code>html</code> for the description.
-          </p>
-          <p>
-            Card members are matched from Zoho sender and recipient email addresses, then merged
-            with the additional assignees you select below.
-          </p>
-        </Message>
+        const defaultWebhook = normalizedDefaults.find((item) => item.id === webhook.id);
+        if (!defaultWebhook) {
+          return false;
+        }
 
-        {normalizedWebhooks.map((item, index) => (
-          <Segment key={item.id}>
-            <div className={styles.headerRow}>
-              <div className={styles.headerText}>Webhook {index + 1}</div>
-              <Button
-                type="button"
-                basic
-                icon
-                disabled={normalizedWebhooks.length === 1}
-                onClick={() => handleRemoveWebhook(index)}
-              >
-                <Icon name="trash" />
-              </Button>
+        return dequal(webhook, defaultWebhook);
+      },
+      [normalizedDefaults, normalizedWebhooks],
+    );
+
+    return (
+      <Tab.Pane attached={false} className={styles.wrapper}>
+        <Form>
+          <Message info>
+            <Message.Header>Connect Zoho (optional)</Message.Header>
+            <div className={styles.webhookActions}>
+              <Button type="button" content="Connect Zoho" onClick={handleConnectZoho} />
             </div>
+            {zohoConnection?.accountId && (
+              <p>
+                Connected Zoho account ID: <code>{zohoConnection.accountId}</code>
+              </p>
+            )}
+            <p>
+              Connect a Zoho account to enable attachment import and email thread matching for
+              replies.
+            </p>
+            <p>
+              If not connected, email attachments will not be uploaded, and reply emails will
+              create new cards instead of comments on existing cards.
+            </p>
+          </Message>
+
+          <Message info>
+            <Message.Header>Zoho Mail mapping</Message.Header>
+            <p>
+              Incoming payload uses <code>subject</code> for the card title and <code>summary</code>{' '}
+              or <code>html</code> for the description.
+            </p>
+            <p>
+              Card members are matched from Zoho sender and recipient email addresses, then merged
+              with the additional assignees you select below.
+            </p>
+          </Message>
+
+          {normalizedWebhooks.map((item, index) => (
+            <Segment key={item.id}>
+              <div className={styles.headerRow}>
+                <div className={styles.headerText}>Webhook {index + 1}</div>
+                <Button
+                  type="button"
+                  basic
+                  icon
+                  disabled={normalizedWebhooks.length === 1}
+                  onClick={() => handleRemoveWebhook(index)}
+                >
+                  <Icon name="trash" />
+                </Button>
+              </div>
 
             <Form.Dropdown
               fluid
@@ -256,20 +305,22 @@ const ZohoWebhookPane = React.memo(({ items, boards, users, currentUser, onUpdat
                 onClick={() => handleSaveWebhook(index)}
               />
             </div>
-          </Segment>
-        ))}
+            </Segment>
+          ))}
 
-        <div className={styles.actions}>
-          <Button type="button" onClick={handleAddWebhook}>
-            Add webhook
-          </Button>
-        </div>
-      </Form>
-    </Tab.Pane>
-  );
-});
+          <div className={styles.actions}>
+            <Button type="button" onClick={handleAddWebhook}>
+              Add webhook
+            </Button>
+          </div>
+        </Form>
+      </Tab.Pane>
+    );
+  },
+);
 
 ZohoWebhookPane.propTypes = {
+  projectId: PropTypes.string.isRequired,
   items: PropTypes.arrayOf(
     PropTypes.shape({
       id: PropTypes.string,
@@ -302,7 +353,14 @@ ZohoWebhookPane.propTypes = {
   currentUser: PropTypes.shape({
     id: PropTypes.string.isRequired,
   }).isRequired,
+  zohoConnection: PropTypes.shape({
+    accountId: PropTypes.string,
+  }),
   onUpdate: PropTypes.func.isRequired,
+};
+
+ZohoWebhookPane.defaultProps = {
+  zohoConnection: undefined,
 };
 
 export default ZohoWebhookPane;

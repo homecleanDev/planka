@@ -22,6 +22,7 @@ const mapStateToProps = (state) => {
     member_card_deletion_enabled: memberCardDeletionEnabled,
     cardFields,
     zohoWebhooks,
+    zohoConnection,
     zohoWebhookToken,
     zohoWebhookListId,
     zohoWebhookUserIds,
@@ -31,6 +32,7 @@ const mapStateToProps = (state) => {
   const managers = selectors.selectManagersForCurrentProject(state);
 
   return {
+    projectId: currentProject?.id,
     name,
     memberCardDeletionEnabled,
     background,
@@ -50,6 +52,7 @@ const mapStateToProps = (state) => {
             },
           ]
         : []),
+    zohoConnection,
     managers,
     allUsers: users,
     currentUser,

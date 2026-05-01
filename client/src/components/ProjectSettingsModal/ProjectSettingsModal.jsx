@@ -12,12 +12,14 @@ import ZohoWebhookPane from './ZohoWebhookPane';
 const ProjectSettingsModal = React.memo(
   ({
     name,
+    projectId,
     memberCardDeletionEnabled,
     background,
     backgroundImage,
     isBackgroundImageUpdating,
     cardFields,
     zohoWebhooks,
+    zohoConnection,
     managers,
     allUsers,
     currentUser,
@@ -102,7 +104,9 @@ const ProjectSettingsModal = React.memo(
         menuItem: 'Zoho Webhook',
         render: () => (
           <ZohoWebhookPane
+            projectId={projectId}
             items={zohoWebhooks}
+            zohoConnection={zohoConnection}
             boards={projectBoards}
             users={currentBoardUsers}
             currentUser={currentUser}
@@ -130,12 +134,14 @@ const ProjectSettingsModal = React.memo(
 
 ProjectSettingsModal.propTypes = {
   name: PropTypes.string.isRequired,
+  projectId: PropTypes.string.isRequired,
   memberCardDeletionEnabled: PropTypes.bool.isRequired,
   /* eslint-disable react/forbid-prop-types */
   background: PropTypes.object,
   backgroundImage: PropTypes.object,
   cardFields: PropTypes.array.isRequired,
   zohoWebhooks: PropTypes.array.isRequired,
+  zohoConnection: PropTypes.object, // eslint-disable-line react/forbid-prop-types
   /* eslint-enable react/forbid-prop-types */
   isBackgroundImageUpdating: PropTypes.bool.isRequired,
   /* eslint-disable react/forbid-prop-types */
@@ -157,6 +163,7 @@ ProjectSettingsModal.defaultProps = {
   background: undefined,
   backgroundImage: undefined,
   currentUser: undefined,
+  zohoConnection: undefined,
 };
 
 export default ProjectSettingsModal;
