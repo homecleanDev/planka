@@ -70,6 +70,25 @@ export function* moveList(id, index) {
   });
 }
 
+export function* fetchListCards(id, cursor, limit, search) {
+  let cards;
+  let cardMemberships;
+  let cardLabels;
+  let tasks;
+  let attachments;
+
+  try {
+    ({
+      items: cards,
+      included: { cardMemberships, cardLabels, tasks, attachments },
+    } = yield call(request, api.getListCards, id, cursor, limit || 50, search));
+  } catch (error) {
+    return;
+  }
+
+  yield put(actions.fetchListCards.success(cards, cardMemberships, cardLabels, tasks, attachments));
+}
+
 // TODO: sort locally
 export function* sortList(id, data) {
   yield put(actions.sortList(id, data));
@@ -119,6 +138,7 @@ export default {
   updateList,
   handleListUpdate,
   moveList,
+  fetchListCards,
   sortList,
   handleListSort,
   deleteList,

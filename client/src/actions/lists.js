@@ -92,6 +92,19 @@ const handleListSort = (list, cards) => ({
   },
 });
 
+const fetchListCards = {};
+
+fetchListCards.success = (cards, cardMemberships, cardLabels, tasks, attachments) => ({
+  type: ActionTypes.LIST_CARDS_FETCH__SUCCESS,
+  payload: {
+    cards,
+    cardMemberships,
+    cardLabels,
+    tasks,
+    attachments,
+  },
+});
+
 const deleteList = (id) => ({
   type: ActionTypes.LIST_DELETE,
   payload: {
@@ -128,6 +141,7 @@ export default {
   handleListUpdate,
   sortList,
   handleListSort,
+  fetchListCards,
   deleteList,
   handleListDelete,
 };

@@ -6,6 +6,24 @@ import { transformCard } from './cards';
 const createList = (boardId, data, headers) =>
   socket.post(`/boards/${boardId}/lists`, data, headers);
 
+const getListCards = (id, cursor, limit, search, headers) =>
+  // Keep `headers` as last arg for API consistency with other modules.
+  socket
+    .get(
+      `/lists/${id}/cards?limit=${limit || 50}${cursor ? `&cursor=${cursor}` : ''}${
+        search ? `&search=${encodeURIComponent(search)}` : ''
+      }`,
+      undefined,
+      headers,
+    )
+    .then((body) => ({
+      ...body,
+      items: body.items.map(transformCard),
+      included: {
+        ...body.included,
+      },
+    }));
+
 const updateList = (id, data, headers) => socket.patch(`/lists/${id}`, data, headers);
 
 const sortList = (id, data, headers) =>
@@ -33,6 +51,7 @@ const makeHandleListSort = (next) => (body) => {
 
 export default {
   createList,
+  getListCards,
   updateList,
   sortList,
   deleteList,

@@ -7,12 +7,19 @@ module.exports = {
       custom: idOrIdsValidator,
       required: true,
     },
+    limit: {
+      type: 'number',
+      min: 1,
+    },
   },
 
   async fn(inputs) {
-    return sails.helpers.notifications.getMany({
-      isRead: false,
-      userId: inputs.idOrIds,
+    return sails.helpers.notifications.getMany.with({
+      criteria: {
+        isRead: false,
+        userId: inputs.idOrIds,
+      },
+      limit: inputs.limit,
     });
   },
 };

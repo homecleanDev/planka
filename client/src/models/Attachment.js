@@ -57,6 +57,7 @@ export default class extends BaseModel {
 
         break;
       case ActionTypes.BOARD_FETCH__SUCCESS:
+      case ActionTypes.LIST_CARDS_FETCH__SUCCESS:
         payload.attachments.forEach((attachment) => {
           Attachment.upsert(attachment);
         });

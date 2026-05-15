@@ -27,11 +27,20 @@ const List = React.memo(
     onDelete,
     onSort,
     onCardCreate,
+    onCardsFetch,
     isCurrentUserManager,
-    member_card_deletion_enabled,
+    memberCardDeletionEnabled,
+    lastCardPosition,
+    filterText,
   }) => {
     const [t] = useTranslation();
     const [isAddCardOpened, setIsAddCardOpened] = useState(false);
+    const [isFetchingCards, setIsFetchingCards] = useState(false);
+    const [hasMoreCards, setHasMoreCards] = useState(true);
+    const requestedCardsCount = useRef(null);
+    const paginationCursorRef = useRef(lastCardPosition);
+    const preSearchCursorRef = useRef(null);
+    const wasSearchActiveRef = useRef(false);
 
     const nameEdit = useRef(null);
     const listWrapper = useRef(null);
@@ -80,6 +89,74 @@ const List = React.memo(
       }
     }, [cardIds, isAddCardOpened]);
 
+    useEffect(() => {
+      if (!isFetchingCards || requestedCardsCount.current === null) {
+        return undefined;
+      }
+
+      if (cardIds.length > requestedCardsCount.current) {
+        setIsFetchingCards(false);
+        requestedCardsCount.current = null;
+        if (!filterText) {
+          paginationCursorRef.current = lastCardPosition;
+        }
+        return undefined;
+      }
+
+      const timeout = setTimeout(() => {
+        if (cardIds.length === requestedCardsCount.current) {
+          setHasMoreCards(false);
+          setIsFetchingCards(false);
+          requestedCardsCount.current = null;
+        }
+      }, 700);
+
+      return () => clearTimeout(timeout);
+    }, [cardIds.length, filterText, hasMoreCards, id, isFetchingCards, lastCardPosition]);
+
+    useEffect(() => {
+      const isSearchActive = !!(filterText && filterText.trim() !== '');
+
+      if (isSearchActive && !wasSearchActiveRef.current) {
+        preSearchCursorRef.current = paginationCursorRef.current;
+      }
+
+      if (!isSearchActive && wasSearchActiveRef.current) {
+        paginationCursorRef.current = preSearchCursorRef.current;
+        preSearchCursorRef.current = null;
+        setHasMoreCards(true);
+        setIsFetchingCards(false);
+        requestedCardsCount.current = null;
+      }
+
+      wasSearchActiveRef.current = isSearchActive;
+    }, [filterText]);
+
+    const handleCardsFetch = useCallback(() => {
+      if (!onCardsFetch || isFetchingCards || !hasMoreCards) {
+        return;
+      }
+
+      if (filterText && filterText.trim() !== '') {
+        return;
+      }
+
+      requestedCardsCount.current = cardIds.length;
+      setIsFetchingCards(true);
+      onCardsFetch(paginationCursorRef.current, 50);
+    }, [onCardsFetch, isFetchingCards, hasMoreCards, cardIds.length, filterText]);
+
+    const handleCardsScroll = useCallback(() => {
+      if (!listWrapper.current) {
+        return;
+      }
+
+      const { scrollTop, scrollHeight, clientHeight } = listWrapper.current;
+      if (scrollHeight - scrollTop - clientHeight < 200) {
+        handleCardsFetch();
+      }
+    }, [handleCardsFetch]);
+
     const ActionsPopup = usePopup(ActionsStep);
 
     const cardsNode = (
@@ -89,19 +166,22 @@ const List = React.memo(
         isDropDisabled={!isPersisted}
       >
         {({ innerRef, droppableProps, placeholder }) => (
-          <div {...droppableProps} ref={innerRef}>
-            <div className={styles.cards}>
-              {renderedCards}
-              {placeholder}
-              {canEdit && (
-                <CardAdd
-                  isOpened={isAddCardOpened}
-                  onCreate={onCardCreate}
-                  onClose={handleAddCardClose}
-                />
-              )}
+          <>
+            {/* eslint-disable-next-line react/jsx-props-no-spreading */}
+            <div {...droppableProps} ref={innerRef}>
+              <div className={styles.cards}>
+                {renderedCards}
+                {placeholder}
+                {canEdit && (
+                  <CardAdd
+                    isOpened={isAddCardOpened}
+                    onCreate={onCardCreate}
+                    onClose={handleAddCardClose}
+                  />
+                )}
+              </div>
             </div>
-          </div>
+          </>
         )}
       </Droppable>
     );
@@ -133,7 +213,7 @@ const List = React.memo(
                     onDelete={onDelete}
                     onSort={onSort}
                     isCurrentUserManager={isCurrentUserManager}
-                    member_card_deletion_enabled={member_card_deletion_enabled}
+                    member_card_deletion_enabled={memberCardDeletionEnabled}
                   >
                     <Button className={classNames(styles.headerButton, styles.target)}>
                       <Icon fitted name="pencil" size="small" />
@@ -147,6 +227,7 @@ const List = React.memo(
                   styles.cardsInnerWrapper,
                   (isAddCardOpened || !canEdit) && styles.cardsInnerWrapperFull,
                 )}
+                onScroll={handleCardsScroll}
               >
                 <div className={styles.cardsOuterWrapper}>{cardsNode}</div>
               </div>
@@ -182,8 +263,16 @@ List.propTypes = {
   onSort: PropTypes.func.isRequired,
   onDelete: PropTypes.func.isRequired,
   onCardCreate: PropTypes.func.isRequired,
+  onCardsFetch: PropTypes.func,
   isCurrentUserManager: PropTypes.bool.isRequired,
-  member_card_deletion_enabled: PropTypes.bool.isRequired,
+  memberCardDeletionEnabled: PropTypes.bool.isRequired,
+  lastCardPosition: PropTypes.number,
+  filterText: PropTypes.string.isRequired,
+};
+
+List.defaultProps = {
+  onCardsFetch: null,
+  lastCardPosition: null,
 };
 
 export default List;

@@ -37,6 +37,16 @@ const moveList = (id, index) => ({
   },
 });
 
+const fetchListCards = (id, cursor, limit, search) => ({
+  type: EntryActionTypes.LIST_CARDS_FETCH,
+  payload: {
+    id,
+    cursor,
+    limit,
+    search,
+  },
+});
+
 const sortList = (id, data) => {
   return {
     type: EntryActionTypes.LIST_SORT,
@@ -75,6 +85,7 @@ export default {
   updateList,
   handleListUpdate,
   moveList,
+  fetchListCards,
   sortList,
   handleListSort,
   deleteList,

@@ -129,6 +129,16 @@ const filterText = (boardId, text) => ({
   },
 });
 
+const searchInCurrentBoard = () => ({
+  type: ActionTypes.BOARD_SEARCH_IN_CURRENT_BOARD,
+  payload: {},
+});
+
+searchInCurrentBoard.success = () => ({
+  type: ActionTypes.BOARD_SEARCH_IN_CURRENT_BOARD__SUCCESS,
+  payload: {},
+});
+
 export default {
   createCard,
   handleCardCreate,
@@ -138,4 +148,5 @@ export default {
   deleteCard,
   handleCardDelete,
   filterText,
+  searchInCurrentBoard,
 };

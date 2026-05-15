@@ -5,6 +5,7 @@ import ModalTypes from '../constants/ModalTypes';
 
 const initialState = {
   isLogouting: false,
+  isBoardSearchFetching: false,
   currentModal: null,
 };
 
@@ -21,6 +22,16 @@ export default (state = initialState, { type, payload }) => {
       return {
         ...state,
         isLogouting: true,
+      };
+    case ActionTypes.BOARD_SEARCH_IN_CURRENT_BOARD:
+      return {
+        ...state,
+        isBoardSearchFetching: true,
+      };
+    case ActionTypes.BOARD_SEARCH_IN_CURRENT_BOARD__SUCCESS:
+      return {
+        ...state,
+        isBoardSearchFetching: false,
       };
     case ActionTypes.MODAL_OPEN:
       return {

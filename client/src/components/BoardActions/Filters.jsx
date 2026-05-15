@@ -18,6 +18,7 @@ const Filters = React.memo(
     users,
     labels,
     filterText,
+    isSearchFetching,
     allBoardMemberships,
     allLabels,
     canEdit,
@@ -144,23 +145,24 @@ const Filters = React.memo(
           ))}
         </span>
         <span className={styles.filter}>
-          <Input
-            ref={searchFieldRef}
-            value={filterText}
-            placeholder={t('common.searchCards')}
-            icon={
-              isSearchActive ? (
-                <Icon link name="cancel" onClick={handleCancelSearchClick} />
-              ) : (
-                'search'
-              )
-            }
-            className={classNames(styles.search, !isSearchActive && styles.searchInactive)}
-            onFocus={handleSearchFocus}
-            onKeyDown={handleSearchKeyDown}
-            onChange={handleSearchChange}
-            onBlur={handleSearchBlur}
-          />
+          <span className={styles.searchWrapper}>
+            <Input
+              ref={searchFieldRef}
+              value={filterText}
+              placeholder={t('common.searchCards')}
+              icon={isSearchActive ? <Icon link name="cancel" onClick={handleCancelSearchClick} /> : 'search'}
+              className={classNames(styles.search, !isSearchActive && styles.searchInactive)}
+              onFocus={handleSearchFocus}
+              onKeyDown={handleSearchKeyDown}
+              onChange={handleSearchChange}
+              onBlur={handleSearchBlur}
+            />
+            {isSearchFetching && (
+              <span className={styles.searchSpinner}>
+                <Icon loading name="spinner" />
+              </span>
+            )}
+          </span>
         </span>
       </>
     );
@@ -172,6 +174,7 @@ Filters.propTypes = {
   users: PropTypes.array.isRequired,
   labels: PropTypes.array.isRequired,
   filterText: PropTypes.string.isRequired,
+  isSearchFetching: PropTypes.bool.isRequired,
   allBoardMemberships: PropTypes.array.isRequired,
   allLabels: PropTypes.array.isRequired,
   /* eslint-enable react/forbid-prop-types */

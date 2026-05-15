@@ -14,6 +14,7 @@ const mapStateToProps = (state) => {
   const filterUsers = selectors.selectFilterUsersForCurrentBoard(state);
   const filterLabels = selectors.selectFilterLabelsForCurrentBoard(state);
   const filterText = selectors.selectFilterTextForCurrentBoard(state);
+  const isSearchFetching = selectors.selectIsBoardSearchFetching(state);
   const currentUserMembership = selectors.selectCurrentUserMembershipForCurrentBoard(state);
 
   const isCurrentUserEditor =
@@ -25,6 +26,7 @@ const mapStateToProps = (state) => {
     filterUsers,
     filterLabels,
     filterText,
+    isSearchFetching,
     allUsers,
     canEdit: isCurrentUserEditor,
     canEditMemberships: isCurrentUserManager,

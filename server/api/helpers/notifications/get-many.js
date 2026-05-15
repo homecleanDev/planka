@@ -6,9 +6,19 @@ module.exports = {
       type: 'json',
       custom: criteriaValidator,
     },
+    limit: {
+      type: 'number',
+      min: 1,
+    },
   },
 
   async fn(inputs) {
-    return Notification.find(inputs.criteria).sort('id DESC');
+    let query = Notification.find(inputs.criteria).sort('id DESC');
+
+    if (!_.isUndefined(inputs.limit)) {
+      query = query.limit(inputs.limit);
+    }
+
+    return query;
   },
 };

@@ -6,9 +6,19 @@ module.exports = {
       type: 'json',
       custom: criteriaValidator,
     },
+    limit: {
+      type: 'number',
+      min: 1,
+    },
   },
 
   async fn(inputs) {
-    return Card.find(inputs.criteria).sort('position');
+    let query = Card.find(inputs.criteria).sort('position');
+
+    if (!_.isUndefined(inputs.limit)) {
+      query = query.limit(inputs.limit);
+    }
+
+    return query;
   },
 };

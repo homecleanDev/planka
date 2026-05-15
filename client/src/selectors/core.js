@@ -7,6 +7,8 @@ import Config from '../constants/Config';
 export const selectAccessToken = ({ auth: { accessToken } }) => accessToken;
 
 export const selectIsLogouting = ({ core: { isLogouting } }) => isLogouting;
+export const selectIsBoardSearchFetching = ({ core: { isBoardSearchFetching } }) =>
+  isBoardSearchFetching;
 
 const nextPosition = (items, index, excludedId) => {
   const filteredItems = isUndefined(excludedId)
@@ -114,6 +116,7 @@ export const selectNextTaskPosition = createSelector(
 export default {
   selectAccessToken,
   selectIsLogouting,
+  selectIsBoardSearchFetching,
   selectNextBoardPosition,
   selectNextLabelPosition,
   selectNextListPosition,

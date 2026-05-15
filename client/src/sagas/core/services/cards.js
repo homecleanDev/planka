@@ -8,6 +8,8 @@ import api from '../../../api';
 import i18n from '../../../i18n';
 import { createLocalId } from '../../../utils/local-id';
 
+const latestSearchTokenByBoardId = {};
+
 export function* createCard(listId, data, autoOpen) {
   const { boardId } = yield select(selectors.selectListById, listId);
 
@@ -209,8 +211,58 @@ export function* handleCardDelete(card) {
 
 export function* handleTextFilter(text) {
   const { boardId } = yield select(selectors.selectPath);
+  const searchToken = `${Date.now()}-${Math.random()}`;
+  latestSearchTokenByBoardId[boardId] = searchToken;
 
   yield put(actions.filterText(boardId, text));
+
+  const searchText = text ? text.trim() : '';
+
+  if (!searchText) {
+    yield put(actions.searchInCurrentBoard.success());
+    return;
+  }
+
+  yield put(actions.searchInCurrentBoard());
+  try {
+    const listIds = yield select(selectors.selectListIdsForCurrentBoard);
+
+    for (let i = 0; i < listIds.length; i += 1) {
+      if (latestSearchTokenByBoardId[boardId] !== searchToken) {
+        return;
+      }
+
+      const listId = listIds[i];
+
+      let cards;
+      let cardMemberships;
+      let cardLabels;
+      let tasks;
+      let attachments;
+
+      let fetched = true;
+      try {
+        ({
+          items: cards,
+          included: { cardMemberships, cardLabels, tasks, attachments },
+        } = yield call(request, api.getListCards, listId, null, null, searchText));
+      } catch (error) {
+        fetched = false;
+      }
+
+      if (fetched) {
+        if (latestSearchTokenByBoardId[boardId] !== searchToken) {
+          return;
+        }
+
+        yield put(
+          actions.fetchListCards.success(cards, cardMemberships, cardLabels, tasks, attachments),
+        );
+      }
+    }
+  } finally {
+    yield put(actions.searchInCurrentBoard.success());
+  }
 }
 
 export default {

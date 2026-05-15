@@ -4,6 +4,8 @@ const Errors = {
   },
 };
 
+const INITIAL_LIST_CARDS_LIMIT = 50;
+
 module.exports = {
   inputs: {
     id: {
@@ -50,7 +52,18 @@ module.exports = {
     const labels = await sails.helpers.boards.getLabels(board.id);
     const lists = await sails.helpers.boards.getLists(board.id);
 
-    const cards = await sails.helpers.boards.getCards(board.id);
+    const listCardChunks = await Promise.all(
+      lists.map((list) =>
+        sails.helpers.cards.getMany.with({
+          criteria: {
+            listId: list.id,
+          },
+          limit: INITIAL_LIST_CARDS_LIMIT,
+        }),
+      ),
+    );
+
+    const cards = _.flatten(listCardChunks);
     const cardIds = sails.helpers.utils.mapRecords(cards);
 
     const cardSubscriptions = await sails.helpers.cardSubscriptions.getMany({

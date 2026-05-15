@@ -141,16 +141,21 @@ export default class extends BaseModel {
 
         break;
       case ActionTypes.BOARD_FETCH__SUCCESS:
+      case ActionTypes.LIST_CARDS_FETCH__SUCCESS:
         payload.cards.forEach((card) => {
           Card.upsert(card);
         });
 
         payload.cardMemberships.forEach(({ cardId, userId }) => {
-          Card.withId(cardId).users.add(userId);
+          try {
+            Card.withId(cardId).users.add(userId);
+          } catch {} // eslint-disable-line no-empty
         });
 
         payload.cardLabels.forEach(({ cardId, labelId }) => {
-          Card.withId(cardId).labels.add(labelId);
+          try {
+            Card.withId(cardId).labels.add(labelId);
+          } catch {} // eslint-disable-line no-empty
         });
 
         break;

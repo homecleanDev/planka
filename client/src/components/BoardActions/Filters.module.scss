@@ -71,4 +71,15 @@
       }
     }
   }
+
+  .searchWrapper {
+    align-items: center;
+    display: inline-flex;
+  }
+
+  .searchSpinner {
+    color: #fff;
+    display: inline-flex;
+    margin-left: 8px;
+  }
 }

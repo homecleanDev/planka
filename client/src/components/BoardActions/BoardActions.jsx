@@ -14,6 +14,7 @@ const BoardActions = React.memo(
     filterUsers,
     filterLabels,
     filterText,
+    isSearchFetching,
     allUsers,
     canEdit,
     canEditMemberships,
@@ -49,6 +50,7 @@ const BoardActions = React.memo(
               users={filterUsers}
               labels={filterLabels}
               filterText={filterText}
+              isSearchFetching={isSearchFetching}
               allBoardMemberships={memberships}
               allLabels={labels}
               canEdit={canEdit}
@@ -76,6 +78,7 @@ BoardActions.propTypes = {
   filterUsers: PropTypes.array.isRequired,
   filterLabels: PropTypes.array.isRequired,
   filterText: PropTypes.string.isRequired,
+  isSearchFetching: PropTypes.bool.isRequired,
   allUsers: PropTypes.array.isRequired,
   /* eslint-enable react/forbid-prop-types */
   canEdit: PropTypes.bool.isRequired,
