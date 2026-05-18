@@ -1,5 +1,6 @@
 import socket from './socket';
 import { transformCard } from './cards';
+import { transformAttachment } from './attachments';
 
 /* Actions */
 
@@ -21,6 +22,7 @@ const getListCards = (id, cursor, limit, search, headers) =>
       items: body.items.map(transformCard),
       included: {
         ...body.included,
+        attachments: body.included.attachments.map(transformAttachment),
       },
     }));
 
