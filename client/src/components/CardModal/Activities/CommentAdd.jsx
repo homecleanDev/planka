@@ -1,139 +1,151 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
 import TextareaAutosize from 'react-textarea-autosize';
 import { Button, Form, TextArea } from 'semantic-ui-react';
-import { useDidUpdate, useToggle } from '../../../lib/hooks';
-
-import { useClosableForm, useForm } from '../../../hooks';
+import SimpleMDE from 'react-simplemde-editor';
+import RichTextImageModal from '../../RichTextImageModal';
+import formatMarkdownImageUrl from '../../../utils/format-markdown-image-url';
 
 import styles from './CommentAdd.module.scss';
-import Tag from '../../Tag/Tag';
-import useMention from '../../../hooks/use-mention';
 
-const DEFAULT_DATA = {
-  text: '',
-};
+const DEFAULT_TEXT = '';
 
-const CommentAdd = React.memo(({ onCreate, boardMemberships }) => {
+const CommentAdd = React.memo(({ onCreate, onImageUpload }) => {
   const [t] = useTranslation();
   const [isOpened, setIsOpened] = useState(false);
-  const [data, handleFieldChange, setData] = useForm(DEFAULT_DATA);
-  const [selectTextFieldState, selectTextField] = useToggle();
-  const [cursor, setCursor] = useState(0);
-  const textField = useRef(null);
-  const { mention, onChange, onSelectMention, isMentioning } = useMention();
+  const [isImageModalOpened, setIsImageModalOpened] = useState(false);
+  const [text, setText] = useState(DEFAULT_TEXT);
+  const activeEditor = useRef(null);
 
   const close = useCallback(() => {
-    if (isMentioning) return;
     setIsOpened(false);
-  }, [isMentioning]);
+  }, []);
 
   const submit = useCallback(() => {
-    const cleanData = {
-      ...data,
-      text: data.text.trim(),
-    };
+    const cleanText = text.trim();
 
-    if (!cleanData.text) {
-      textField.current.ref.current.select();
+    if (!cleanText) {
       return;
     }
 
-    onCreate(cleanData);
+    onCreate({
+      text: cleanText,
+    });
 
-    setData(DEFAULT_DATA);
-    selectTextField();
-  }, [onCreate, data, setData, selectTextField]);
+    setText(DEFAULT_TEXT);
+    close();
+  }, [onCreate, text, close]);
 
   const handleFieldFocus = useCallback(() => {
     setIsOpened(true);
   }, []);
-
-  const calculatePosition = (position) => Math.min(position, 22) * 8;
 
   const handleFieldKeyDown = useCallback(
     (ev) => {
       if (ev.ctrlKey && ev.key === 'Enter') {
         submit();
       }
-      setCursor(calculatePosition(ev.target.selectionStart));
-      onChange(ev);
     },
-    [submit, onChange],
+    [submit],
   );
-
-  const [handleFieldBlur, handleControlMouseOver, handleControlMouseOut] = useClosableForm(close);
 
   const handleSubmit = useCallback(() => {
     submit();
   }, [submit]);
 
-  const handleChange = (ev, updatedData) => {
-    handleFieldChange(ev, updatedData);
-    onChange(ev);
-  };
+  const handleImageInsert = useCallback((url) => {
+    const editor = activeEditor.current;
+    if (!editor || !editor.codemirror) {
+      return;
+    }
 
-  const handleMention = (user) => {
-    setData({
-      text: onSelectMention(data.text, user),
-    });
-  };
+    editor.codemirror.replaceSelection(`![image](${formatMarkdownImageUrl(url)})`);
+    editor.codemirror.focus();
+  }, []);
 
-  useDidUpdate(() => {
-    textField.current.ref.current.focus();
-  }, [selectTextFieldState]);
+  const mdEditorOptions = useMemo(
+    () => ({
+      autofocus: false,
+      spellChecker: false,
+      status: false,
+      toolbar: [
+        'bold',
+        'italic',
+        'heading',
+        'strikethrough',
+        '|',
+        'quote',
+        'unordered-list',
+        'ordered-list',
+        'table',
+        '|',
+        'link',
+        {
+          name: 'image',
+          action: (editor) => {
+            activeEditor.current = editor;
+            setIsImageModalOpened(true);
+          },
+          className: 'fa fa-image',
+          title: 'Insert Image',
+        },
+        '|',
+        'undo',
+        'redo',
+        '|',
+        'guide',
+      ],
+    }),
+    [],
+  );
 
   return (
     <Form onSubmit={handleSubmit}>
-      <TextArea
-        ref={textField}
-        as={TextareaAutosize}
-        name="text"
-        value={data.text}
-        placeholder={t('common.writeComment')}
-        minRows={isOpened ? 3 : 1}
-        spellCheck={false}
-        className={styles.field}
-        onFocus={handleFieldFocus}
-        onKeyDown={handleFieldKeyDown}
-        onChange={handleChange}
-        onBlur={handleFieldBlur}
-      />
-      {isMentioning && (
-        <div
-          style={{
-            marginLeft: `${cursor}px`,
-            position: 'absolute',
-            left: `${cursor}px`,
-            bottom: '120px',
-          }}
-        >
-          {' '}
-          <Tag
-            search={mention}
-            boardMemberships={boardMemberships}
-            handleUserSelect={handleMention}
-          />
-        </div>
+      {isOpened ? (
+        <SimpleMDE
+          value={text}
+          options={mdEditorOptions}
+          placeholder={t('common.writeComment')}
+          className={styles.field}
+          onKeyDown={handleFieldKeyDown}
+          onChange={setText}
+        />
+      ) : (
+        <TextArea
+          as={TextareaAutosize}
+          value={text}
+          placeholder={t('common.writeComment')}
+          minRows={1}
+          spellCheck={false}
+          className={styles.field}
+          onFocus={handleFieldFocus}
+          onChange={(_, { value }) => setText(value)}
+        />
       )}
       {isOpened && (
         <div className={styles.controls}>
-          <Button
-            positive
-            content={t('action.addComment')}
-            onMouseOver={handleControlMouseOver}
-            onMouseOut={handleControlMouseOut}
-          />
+          <Button positive content={t('action.addComment')} onClick={submit} />
+          <Button type="button" content="Cancel" onClick={close} />
         </div>
       )}
+      <RichTextImageModal
+        isOpen={isImageModalOpened}
+        onClose={() => setIsImageModalOpened(false)}
+        onInsert={handleImageInsert}
+        onUpload={onImageUpload}
+      />
     </Form>
   );
 });
 
 CommentAdd.propTypes = {
   onCreate: PropTypes.func.isRequired,
-  boardMemberships: PropTypes.array.isRequired, // eslint-disable-line react/forbid-prop-types
+  onImageUpload: PropTypes.func,
+};
+
+CommentAdd.defaultProps = {
+  onImageUpload: undefined,
 };
 
 export default CommentAdd;

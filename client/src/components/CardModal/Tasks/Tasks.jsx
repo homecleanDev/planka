@@ -11,7 +11,7 @@ import Add from './Add';
 
 import styles from './Tasks.module.scss';
 
-const Tasks = React.memo(({ items, canEdit, onCreate, onUpdate, onMove, onDelete }) => {
+const Tasks = React.memo(({ items, canEdit, onCreate, onUpdate, onMove, onDelete, onImageUpload }) => {
   const [t] = useTranslation();
 
   const handleDragStart = useCallback(() => {
@@ -78,13 +78,14 @@ const Tasks = React.memo(({ items, canEdit, onCreate, onUpdate, onMove, onDelete
                   isCompleted={item.isCompleted}
                   isPersisted={item.isPersisted}
                   canEdit={canEdit}
+                  onImageUpload={onImageUpload}
                   onUpdate={(data) => handleUpdate(item.id, data)}
                   onDelete={() => handleDelete(item.id)}
                 />
               ))}
               {placeholder}
               {canEdit && (
-                <Add onCreate={onCreate}>
+                <Add onCreate={onCreate} onImageUpload={onImageUpload}>
                   <button type="button" className={styles.taskButton}>
                     <span className={styles.taskButtonText}>
                       {items.length > 0 ? t('action.addAnotherTask') : t('action.addTask')}
@@ -107,6 +108,11 @@ Tasks.propTypes = {
   onUpdate: PropTypes.func.isRequired,
   onMove: PropTypes.func.isRequired,
   onDelete: PropTypes.func.isRequired,
+  onImageUpload: PropTypes.func,
+};
+
+Tasks.defaultProps = {
+  onImageUpload: undefined,
 };
 
 export default Tasks;

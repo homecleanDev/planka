@@ -25,6 +25,7 @@ const Activities = React.memo(
     onCommentUpdate,
     onCommentDelete,
     boardMemberships,
+    onImageUpload,
   }) => {
     const [t] = useTranslation();
 
@@ -66,7 +67,13 @@ const Activities = React.memo(
               onClick={handleToggleDetailsClick}
             />
           </div>
-          {canEdit && <CommentAdd onCreate={onCommentCreate} boardMemberships={boardMemberships} />}
+          {canEdit && (
+            <CommentAdd
+              onCreate={onCommentCreate}
+              boardMemberships={boardMemberships}
+              onImageUpload={onImageUpload}
+            />
+          )}
           <div className={styles.wrapper}>
             <Comment.Group>
               {items.map((item) =>
@@ -81,6 +88,7 @@ const Activities = React.memo(
                     onUpdate={(data) => handleCommentUpdate(item.id, data)}
                     onDelete={() => handleCommentDelete(item.id)}
                     boardMemberships={boardMemberships}
+                    onImageUpload={onImageUpload}
                   />
                 ) : (
                   <Item
@@ -120,6 +128,11 @@ Activities.propTypes = {
   onCommentUpdate: PropTypes.func.isRequired,
   onCommentDelete: PropTypes.func.isRequired,
   boardMemberships: PropTypes.array.isRequired, // eslint-disable-line react/forbid-prop-types
+  onImageUpload: PropTypes.func,
+};
+
+Activities.defaultProps = {
+  onImageUpload: undefined,
 };
 
 export default Activities;

@@ -3,8 +3,7 @@ import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import { Progress } from 'semantic-ui-react';
 import { useToggle } from '../../lib/hooks';
-
-import Linkify from '../Linkify';
+import { Markdown } from '../../lib/custom-ui';
 
 import styles from './Tasks.module.scss';
 
@@ -50,7 +49,9 @@ const Tasks = React.memo(({ items }) => {
               key={item.id}
               className={classNames(styles.task, item.isCompleted && styles.taskCompleted)}
             >
-              <Linkify linkStopPropagation>{item.name}</Linkify>
+              <Markdown linkStopPropagation linkTarget="_blank">
+                {item.name}
+              </Markdown>
             </li>
           ))}
         </ul>

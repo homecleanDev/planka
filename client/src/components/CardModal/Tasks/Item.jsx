@@ -5,15 +5,15 @@ import classNames from 'classnames';
 import { Draggable } from 'react-beautiful-dnd';
 import { Button, Checkbox, Icon } from 'semantic-ui-react';
 import { usePopup } from '../../../lib/popup';
+import { Markdown } from '../../../lib/custom-ui';
 
 import NameEdit from './NameEdit';
 import ActionsStep from './ActionsStep';
-import Linkify from '../../Linkify';
 
 import styles from './Item.module.scss';
 
 const Item = React.memo(
-  ({ id, index, name, isCompleted, isPersisted, canEdit, onUpdate, onDelete }) => {
+  ({ id, index, name, isCompleted, isPersisted, canEdit, onUpdate, onDelete, onImageUpload }) => {
     const nameEdit = useRef(null);
 
     const handleClick = useCallback(() => {
@@ -57,7 +57,12 @@ const Item = React.memo(
                   onChange={handleToggleChange}
                 />
               </span>
-              <NameEdit ref={nameEdit} defaultValue={name} onUpdate={handleNameUpdate}>
+              <NameEdit
+                ref={nameEdit}
+                defaultValue={name}
+                onUpdate={handleNameUpdate}
+                onImageUpload={onImageUpload}
+              >
                 <div className={classNames(canEdit && styles.contentHoverable)}>
                   {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events,
                                                jsx-a11y/no-static-element-interactions */}
@@ -66,7 +71,9 @@ const Item = React.memo(
                     onClick={handleClick}
                   >
                     <span className={classNames(styles.task, isCompleted && styles.taskCompleted)}>
-                      <Linkify linkStopPropagation>{name}</Linkify>
+                      <Markdown linkStopPropagation linkTarget="_blank">
+                        {name}
+                      </Markdown>
                     </span>
                   </span>
                   {isPersisted && canEdit && (
@@ -97,6 +104,11 @@ Item.propTypes = {
   canEdit: PropTypes.bool.isRequired,
   onUpdate: PropTypes.func.isRequired,
   onDelete: PropTypes.func.isRequired,
+  onImageUpload: PropTypes.func,
+};
+
+Item.defaultProps = {
+  onImageUpload: undefined,
 };
 
 export default Item;

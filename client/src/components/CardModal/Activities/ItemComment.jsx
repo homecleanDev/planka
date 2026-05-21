@@ -15,7 +15,17 @@ import styles from './ItemComment.module.scss';
 import replaceMentionsWithName from '../../../utils/replace-mentions-with-name';
 
 const ItemComment = React.memo(
-  ({ data, createdAt, isPersisted, user, canEdit, onUpdate, onDelete, boardMemberships }) => {
+  ({
+    data,
+    createdAt,
+    isPersisted,
+    user,
+    canEdit,
+    onUpdate,
+    onDelete,
+    boardMemberships,
+    onImageUpload,
+  }) => {
     const [t] = useTranslation();
     const comment = replaceMentionsWithName(data.text, boardMemberships);
 
@@ -42,7 +52,12 @@ const ItemComment = React.memo(
               })}
             </span>
           </div>
-          <CommentEdit ref={commentEdit} defaultData={data} onUpdate={onUpdate}>
+          <CommentEdit
+            ref={commentEdit}
+            defaultData={data}
+            onUpdate={onUpdate}
+            onImageUpload={onImageUpload}
+          >
             <>
               <div className={styles.text}>
                 <Markdown linkTarget="_blank">{comment}</Markdown>
@@ -86,6 +101,11 @@ ItemComment.propTypes = {
   onUpdate: PropTypes.func.isRequired,
   onDelete: PropTypes.func.isRequired,
   boardMemberships: PropTypes.array.isRequired, // eslint-disable-line react/forbid-prop-types
+  onImageUpload: PropTypes.func,
+};
+
+ItemComment.defaultProps = {
+  onImageUpload: undefined,
 };
 
 export default ItemComment;

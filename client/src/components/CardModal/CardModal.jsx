@@ -7,6 +7,7 @@ import { usePopup } from '../../lib/popup';
 import { Markdown } from '../../lib/custom-ui';
 
 import { startStopwatch, stopStopwatch } from '../../utils/stopwatch';
+import uploadEditorImage from '../../utils/upload-editor-image';
 import NameField from './NameField';
 import DescriptionEdit from './DescriptionEdit';
 import Tasks from './Tasks';
@@ -162,6 +163,11 @@ const CardModal = React.memo(
         isSubscribed: !isSubscribed,
       });
     }, [isSubscribed, onUpdate]);
+
+    const handleEditorImageUpload = useCallback(
+      (file) => uploadEditorImage(cardId, file),
+      [cardId],
+    );
 
     const handleDuplicateClick = useCallback(() => {
       onDuplicate();
@@ -415,7 +421,11 @@ const CardModal = React.memo(
                   <Icon name="align justify" className={styles.moduleIcon} />
                   <div className={styles.moduleHeader}>{t('common.description')}</div>
                   {canEdit ? (
-                    <DescriptionEdit defaultValue={description} onUpdate={handleDescriptionUpdate}>
+                    <DescriptionEdit
+                      defaultValue={description}
+                      onUpdate={handleDescriptionUpdate}
+                      onImageUpload={handleEditorImageUpload}
+                    >
                       {description ? (
                         <button
                           type="button"
@@ -455,6 +465,7 @@ const CardModal = React.memo(
                           defaultValue={field.value}
                           placeholder={t('common.enterFieldValue')}
                           onUpdate={(value) => handleCardFieldUpdate(field.id, field.name, value)}
+                          onImageUpload={handleEditorImageUpload}
                         >
                           {field.value ? (
                             <button
@@ -494,6 +505,7 @@ const CardModal = React.memo(
                   <Tasks
                     items={tasks}
                     canEdit={canEdit}
+                    onImageUpload={handleEditorImageUpload}
                     onCreate={onTaskCreate}
                     onUpdate={onTaskUpdate}
                     onMove={onTaskMove}
@@ -522,6 +534,7 @@ const CardModal = React.memo(
             <Activities
               boardMemberships={allBoardMemberships}
               items={activities}
+              onImageUpload={handleEditorImageUpload}
               isFetching={isActivitiesFetching}
               isAllFetched={isAllActivitiesFetched}
               isDetailsVisible={isActivitiesDetailsVisible}

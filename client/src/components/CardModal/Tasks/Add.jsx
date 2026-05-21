@@ -1,11 +1,10 @@
-import React, { useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import React, { useCallback, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
-import TextareaAutosize from 'react-textarea-autosize';
-import { Button, Form, TextArea } from 'semantic-ui-react';
-import { useDidUpdate, useToggle } from '../../../lib/hooks';
-
-import { useClosableForm, useForm } from '../../../hooks';
+import { Button, Form } from 'semantic-ui-react';
+import SimpleMDE from 'react-simplemde-editor';
+import RichTextImageModal from '../../RichTextImageModal';
+import formatMarkdownImageUrl from '../../../utils/format-markdown-image-url';
 
 import styles from './Add.module.scss';
 
@@ -13,13 +12,12 @@ const DEFAULT_DATA = {
   name: '',
 };
 
-const Add = React.forwardRef(({ children, onCreate }, ref) => {
+const Add = React.forwardRef(({ children, onCreate, onImageUpload }, ref) => {
   const [t] = useTranslation();
   const [isOpened, setIsOpened] = useState(false);
-  const [data, handleFieldChange, setData] = useForm(DEFAULT_DATA);
-  const [focusNameFieldState, focusNameField] = useToggle();
-
-  const nameField = useRef(null);
+  const [isImageModalOpened, setIsImageModalOpened] = useState(false);
+  const [data, setData] = useState(DEFAULT_DATA);
+  const activeEditor = useRef(null);
 
   const open = useCallback(() => {
     setIsOpened(true);
@@ -36,15 +34,13 @@ const Add = React.forwardRef(({ children, onCreate }, ref) => {
     };
 
     if (!cleanData.name) {
-      nameField.current.ref.current.select();
       return;
     }
 
     onCreate(cleanData);
 
     setData(DEFAULT_DATA);
-    focusNameField();
-  }, [onCreate, data, setData, focusNameField]);
+  }, [onCreate, data]);
 
   useImperativeHandle(
     ref,
@@ -59,35 +55,64 @@ const Add = React.forwardRef(({ children, onCreate }, ref) => {
     open();
   }, [open]);
 
+  const handleSubmit = useCallback(() => {
+    submit();
+  }, [submit]);
+
+  const handleImageInsert = useCallback((url) => {
+    const editor = activeEditor.current;
+    if (!editor || !editor.codemirror) {
+      return;
+    }
+
+    editor.codemirror.replaceSelection(`![image](${formatMarkdownImageUrl(url)})`);
+    editor.codemirror.focus();
+  }, []);
+
+  const mdEditorOptions = useMemo(
+    () => ({
+      autofocus: true,
+      spellChecker: false,
+      status: false,
+      toolbar: [
+        'bold',
+        'italic',
+        'heading',
+        'strikethrough',
+        '|',
+        'quote',
+        'unordered-list',
+        'ordered-list',
+        'table',
+        '|',
+        'link',
+        {
+          name: 'image',
+          action: (editor) => {
+            activeEditor.current = editor;
+            setIsImageModalOpened(true);
+          },
+          className: 'fa fa-image',
+          title: 'Insert Image',
+        },
+        '|',
+        'undo',
+        'redo',
+        '|',
+        'guide',
+      ],
+    }),
+    [],
+  );
+
   const handleFieldKeyDown = useCallback(
     (event) => {
-      if (event.key === 'Enter') {
-        event.preventDefault();
-
+      if (event.ctrlKey && event.key === 'Enter') {
         submit();
       }
     },
     [submit],
   );
-
-  const [handleFieldBlur, handleControlMouseOver, handleControlMouseOut] = useClosableForm(
-    close,
-    isOpened,
-  );
-
-  const handleSubmit = useCallback(() => {
-    submit();
-  }, [submit]);
-
-  useEffect(() => {
-    if (isOpened) {
-      nameField.current.ref.current.focus();
-    }
-  }, [isOpened]);
-
-  useDidUpdate(() => {
-    nameField.current.ref.current.focus();
-  }, [focusNameFieldState]);
 
   if (!isOpened) {
     return React.cloneElement(children, {
@@ -97,28 +122,23 @@ const Add = React.forwardRef(({ children, onCreate }, ref) => {
 
   return (
     <Form className={styles.wrapper} onSubmit={handleSubmit}>
-      <TextArea
-        ref={nameField}
-        as={TextareaAutosize}
-        name="name"
+      <SimpleMDE
         value={data.name}
+        options={mdEditorOptions}
         placeholder={t('common.enterTaskDescription')}
-        minRows={2}
-        spellCheck={false}
         className={styles.field}
         onKeyDown={handleFieldKeyDown}
-        onChange={handleFieldChange}
-        onBlur={handleFieldBlur}
+        onChange={(value) => setData({ name: value })}
       />
       <div className={styles.controls}>
-        {/* eslint-disable-next-line jsx-a11y/mouse-events-have-key-events */}
-        <Button
-          positive
-          content={t('action.addTask')}
-          onMouseOver={handleControlMouseOver}
-          onMouseOut={handleControlMouseOut}
-        />
+        <Button positive content={t('action.addTask')} />
       </div>
+      <RichTextImageModal
+        isOpen={isImageModalOpened}
+        onClose={() => setIsImageModalOpened(false)}
+        onInsert={handleImageInsert}
+        onUpload={onImageUpload}
+      />
     </Form>
   );
 });
@@ -126,6 +146,11 @@ const Add = React.forwardRef(({ children, onCreate }, ref) => {
 Add.propTypes = {
   children: PropTypes.element.isRequired,
   onCreate: PropTypes.func.isRequired,
+  onImageUpload: PropTypes.func,
+};
+
+Add.defaultProps = {
+  onImageUpload: undefined,
 };
 
 export default React.memo(Add);
