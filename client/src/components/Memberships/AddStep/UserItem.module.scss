@@ -3,14 +3,18 @@
     background: transparent;
     border: none;
     border-radius: 0.28571429rem;
+    box-sizing: border-box;
     cursor: pointer;
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 8px;
     margin: 0;
     outline: 0;
-    overflow: hidden;
+    overflow: visible;
     padding: 4px;
     text-align: left;
     width: 100%;
+    min-width: 0;
 
     &:hover {
       background: rgba(0, 0, 0, 0.05);
@@ -18,10 +22,11 @@
   }
 
   .menuItemText {
-    display: inline-block;
+    display: block;
+    flex: 1 1 auto;
     line-height: 32px;
     position: relative;
-    width: calc(100% - 40px);
+    min-width: 0;
   }
 
   .menuItemTextActive:before {
@@ -39,9 +44,9 @@
   }
 
   .user {
-    display: inline-block;
+    display: block;
+    flex: 0 0 40px;
     line-height: 32px;
-    padding-right: 8px;
     width: 40px;
   }
 }

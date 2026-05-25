@@ -1,22 +1,18 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
 import TextareaAutosize from 'react-textarea-autosize';
 import { Button, Form, TextArea } from 'semantic-ui-react';
-import SimpleMDE from 'react-simplemde-editor';
-import RichTextImageModal from '../../RichTextImageModal';
-import formatMarkdownImageUrl from '../../../utils/format-markdown-image-url';
+import RichTextEditor from '../../RichTextEditor';
 
 import styles from './CommentAdd.module.scss';
 
 const DEFAULT_TEXT = '';
 
-const CommentAdd = React.memo(({ onCreate, onImageUpload }) => {
+const CommentAdd = React.memo(({ onCreate, boardMemberships, onImageUpload }) => {
   const [t] = useTranslation();
   const [isOpened, setIsOpened] = useState(false);
-  const [isImageModalOpened, setIsImageModalOpened] = useState(false);
   const [text, setText] = useState(DEFAULT_TEXT);
-  const activeEditor = useRef(null);
 
   const close = useCallback(() => {
     setIsOpened(false);
@@ -54,62 +50,18 @@ const CommentAdd = React.memo(({ onCreate, onImageUpload }) => {
     submit();
   }, [submit]);
 
-  const handleImageInsert = useCallback((url) => {
-    const editor = activeEditor.current;
-    if (!editor || !editor.codemirror) {
-      return;
-    }
-
-    editor.codemirror.replaceSelection(`![image](${formatMarkdownImageUrl(url)})`);
-    editor.codemirror.focus();
-  }, []);
-
-  const mdEditorOptions = useMemo(
-    () => ({
-      autofocus: false,
-      spellChecker: false,
-      status: false,
-      toolbar: [
-        'bold',
-        'italic',
-        'heading',
-        'strikethrough',
-        '|',
-        'quote',
-        'unordered-list',
-        'ordered-list',
-        'table',
-        '|',
-        'link',
-        {
-          name: 'image',
-          action: (editor) => {
-            activeEditor.current = editor;
-            setIsImageModalOpened(true);
-          },
-          className: 'fa fa-image',
-          title: 'Insert Image',
-        },
-        '|',
-        'undo',
-        'redo',
-        '|',
-        'guide',
-      ],
-    }),
-    [],
-  );
-
   return (
     <Form onSubmit={handleSubmit}>
       {isOpened ? (
-        <SimpleMDE
+        <RichTextEditor
           value={text}
-          options={mdEditorOptions}
+          autofocus={false}
+          boardMemberships={boardMemberships}
           placeholder={t('common.writeComment')}
           className={styles.field}
           onKeyDown={handleFieldKeyDown}
           onChange={setText}
+          onImageUpload={onImageUpload}
         />
       ) : (
         <TextArea
@@ -129,18 +81,13 @@ const CommentAdd = React.memo(({ onCreate, onImageUpload }) => {
           <Button type="button" content="Cancel" onClick={close} />
         </div>
       )}
-      <RichTextImageModal
-        isOpen={isImageModalOpened}
-        onClose={() => setIsImageModalOpened(false)}
-        onInsert={handleImageInsert}
-        onUpload={onImageUpload}
-      />
     </Form>
   );
 });
 
 CommentAdd.propTypes = {
   onCreate: PropTypes.func.isRequired,
+  boardMemberships: PropTypes.array.isRequired, // eslint-disable-line react/forbid-prop-types
   onImageUpload: PropTypes.func,
 };
 

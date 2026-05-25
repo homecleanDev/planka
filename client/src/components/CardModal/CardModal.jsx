@@ -25,6 +25,7 @@ import DueDateEditStep from '../DueDateEditStep';
 import StopwatchEditStep from '../StopwatchEditStep';
 import CardMoveStep from '../CardMoveStep';
 import DeleteStep from '../DeleteStep';
+import replaceMentionsWithName from '../../utils/replace-mentions-with-name';
 
 import styles from './CardModal.module.scss';
 
@@ -228,6 +229,7 @@ const CardModal = React.memo(
 
     const userIds = users.map((user) => user.id);
     const labelIds = labels.map((label) => label.id);
+    const renderedDescription = replaceMentionsWithName(description || '', allBoardMemberships);
 
     const canDelete = isCurrentUserManager || member_card_deletion_enabled;
 
@@ -424,6 +426,7 @@ const CardModal = React.memo(
                     <DescriptionEdit
                       defaultValue={description}
                       onUpdate={handleDescriptionUpdate}
+                      boardMemberships={allBoardMemberships}
                       onImageUpload={handleEditorImageUpload}
                     >
                       {description ? (
@@ -432,7 +435,7 @@ const CardModal = React.memo(
                           className={classNames(styles.descriptionText, styles.cursorPointer)}
                         >
                           <Markdown linkStopPropagation linkTarget="_blank">
-                            {description}
+                            {renderedDescription}
                           </Markdown>
                         </button>
                       ) : (
@@ -446,7 +449,7 @@ const CardModal = React.memo(
                   ) : (
                     <div className={styles.descriptionText}>
                       <Markdown linkStopPropagation linkTarget="_blank">
-                        {description}
+                        {renderedDescription}
                       </Markdown>
                     </div>
                   )}
@@ -464,6 +467,7 @@ const CardModal = React.memo(
                         <DescriptionEdit
                           defaultValue={field.value}
                           placeholder={t('common.enterFieldValue')}
+                          boardMemberships={allBoardMemberships}
                           onUpdate={(value) => handleCardFieldUpdate(field.id, field.name, value)}
                           onImageUpload={handleEditorImageUpload}
                         >
@@ -473,7 +477,7 @@ const CardModal = React.memo(
                               className={classNames(styles.descriptionText, styles.cursorPointer)}
                             >
                               <Markdown linkStopPropagation linkTarget="_blank">
-                                {field.value}
+                                {replaceMentionsWithName(field.value, allBoardMemberships)}
                               </Markdown>
                             </button>
                           ) : (
@@ -489,7 +493,7 @@ const CardModal = React.memo(
                       ) : (
                         <div className={styles.descriptionText}>
                           <Markdown linkStopPropagation linkTarget="_blank">
-                            {field.value}
+                            {replaceMentionsWithName(field.value, allBoardMemberships)}
                           </Markdown>
                         </div>
                       )}
@@ -505,6 +509,7 @@ const CardModal = React.memo(
                   <Tasks
                     items={tasks}
                     canEdit={canEdit}
+                    boardMemberships={allBoardMemberships}
                     onImageUpload={handleEditorImageUpload}
                     onCreate={onTaskCreate}
                     onUpdate={onTaskUpdate}

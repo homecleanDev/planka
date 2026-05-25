@@ -1,10 +1,8 @@
-import React, { useCallback, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useImperativeHandle, useState } from 'react';
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
 import { Button, Form } from 'semantic-ui-react';
-import SimpleMDE from 'react-simplemde-editor';
-import RichTextImageModal from '../../RichTextImageModal';
-import formatMarkdownImageUrl from '../../../utils/format-markdown-image-url';
+import RichTextEditor from '../../RichTextEditor';
 
 import styles from './Add.module.scss';
 
@@ -12,12 +10,10 @@ const DEFAULT_DATA = {
   name: '',
 };
 
-const Add = React.forwardRef(({ children, onCreate, onImageUpload }, ref) => {
+const Add = React.forwardRef(({ children, onCreate, boardMemberships, onImageUpload }, ref) => {
   const [t] = useTranslation();
   const [isOpened, setIsOpened] = useState(false);
-  const [isImageModalOpened, setIsImageModalOpened] = useState(false);
   const [data, setData] = useState(DEFAULT_DATA);
-  const activeEditor = useRef(null);
 
   const open = useCallback(() => {
     setIsOpened(true);
@@ -59,52 +55,6 @@ const Add = React.forwardRef(({ children, onCreate, onImageUpload }, ref) => {
     submit();
   }, [submit]);
 
-  const handleImageInsert = useCallback((url) => {
-    const editor = activeEditor.current;
-    if (!editor || !editor.codemirror) {
-      return;
-    }
-
-    editor.codemirror.replaceSelection(`![image](${formatMarkdownImageUrl(url)})`);
-    editor.codemirror.focus();
-  }, []);
-
-  const mdEditorOptions = useMemo(
-    () => ({
-      autofocus: true,
-      spellChecker: false,
-      status: false,
-      toolbar: [
-        'bold',
-        'italic',
-        'heading',
-        'strikethrough',
-        '|',
-        'quote',
-        'unordered-list',
-        'ordered-list',
-        'table',
-        '|',
-        'link',
-        {
-          name: 'image',
-          action: (editor) => {
-            activeEditor.current = editor;
-            setIsImageModalOpened(true);
-          },
-          className: 'fa fa-image',
-          title: 'Insert Image',
-        },
-        '|',
-        'undo',
-        'redo',
-        '|',
-        'guide',
-      ],
-    }),
-    [],
-  );
-
   const handleFieldKeyDown = useCallback(
     (event) => {
       if (event.ctrlKey && event.key === 'Enter') {
@@ -122,23 +72,19 @@ const Add = React.forwardRef(({ children, onCreate, onImageUpload }, ref) => {
 
   return (
     <Form className={styles.wrapper} onSubmit={handleSubmit}>
-      <SimpleMDE
+      <RichTextEditor
         value={data.name}
-        options={mdEditorOptions}
+        autofocus
+        boardMemberships={boardMemberships}
         placeholder={t('common.enterTaskDescription')}
         className={styles.field}
         onKeyDown={handleFieldKeyDown}
         onChange={(value) => setData({ name: value })}
+        onImageUpload={onImageUpload}
       />
       <div className={styles.controls}>
         <Button positive content={t('action.addTask')} />
       </div>
-      <RichTextImageModal
-        isOpen={isImageModalOpened}
-        onClose={() => setIsImageModalOpened(false)}
-        onInsert={handleImageInsert}
-        onUpload={onImageUpload}
-      />
     </Form>
   );
 });
@@ -146,10 +92,12 @@ const Add = React.forwardRef(({ children, onCreate, onImageUpload }, ref) => {
 Add.propTypes = {
   children: PropTypes.element.isRequired,
   onCreate: PropTypes.func.isRequired,
+  boardMemberships: PropTypes.array, // eslint-disable-line react/forbid-prop-types
   onImageUpload: PropTypes.func,
 };
 
 Add.defaultProps = {
+  boardMemberships: undefined,
   onImageUpload: undefined,
 };
 

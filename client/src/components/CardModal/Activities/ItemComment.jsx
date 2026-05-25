@@ -56,6 +56,7 @@ const ItemComment = React.memo(
             ref={commentEdit}
             defaultData={data}
             onUpdate={onUpdate}
+            boardMemberships={boardMemberships}
             onImageUpload={onImageUpload}
           >
             <>

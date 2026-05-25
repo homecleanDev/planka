@@ -1,0 +1,11 @@
+:global(#app) {
+  .wrapper {
+    position: relative;
+    overflow: visible;
+  }
+
+  .mentions {
+    position: absolute;
+    z-index: 200;
+  }
+}

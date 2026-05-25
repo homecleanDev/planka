@@ -11,10 +11,23 @@ import NameEdit from './NameEdit';
 import ActionsStep from './ActionsStep';
 
 import styles from './Item.module.scss';
+import replaceMentionsWithName from '../../../utils/replace-mentions-with-name';
 
 const Item = React.memo(
-  ({ id, index, name, isCompleted, isPersisted, canEdit, onUpdate, onDelete, onImageUpload }) => {
+  ({
+    id,
+    index,
+    name,
+    isCompleted,
+    isPersisted,
+    canEdit,
+    onUpdate,
+    onDelete,
+    boardMemberships,
+    onImageUpload,
+  }) => {
     const nameEdit = useRef(null);
+    const taskName = replaceMentionsWithName(name, boardMemberships);
 
     const handleClick = useCallback(() => {
       if (isPersisted && canEdit) {
@@ -61,6 +74,7 @@ const Item = React.memo(
                 ref={nameEdit}
                 defaultValue={name}
                 onUpdate={handleNameUpdate}
+                boardMemberships={boardMemberships}
                 onImageUpload={onImageUpload}
               >
                 <div className={classNames(canEdit && styles.contentHoverable)}>
@@ -72,7 +86,7 @@ const Item = React.memo(
                   >
                     <span className={classNames(styles.task, isCompleted && styles.taskCompleted)}>
                       <Markdown linkStopPropagation linkTarget="_blank">
-                        {name}
+                        {taskName}
                       </Markdown>
                     </span>
                   </span>
@@ -104,10 +118,12 @@ Item.propTypes = {
   canEdit: PropTypes.bool.isRequired,
   onUpdate: PropTypes.func.isRequired,
   onDelete: PropTypes.func.isRequired,
+  boardMemberships: PropTypes.array, // eslint-disable-line react/forbid-prop-types
   onImageUpload: PropTypes.func,
 };
 
 Item.defaultProps = {
+  boardMemberships: undefined,
   onImageUpload: undefined,
 };
 
