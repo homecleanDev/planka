@@ -43,7 +43,8 @@ module.exports = {
       .intercept('pathNotFound', () => Errors.TASK_NOT_FOUND);
 
     let { task } = path;
-    const { board } = path;
+    const { board, card } = path;
+    const prevTask = task;
 
     const boardMembership = await BoardMembership.findOne({
       boardId: board.id,
@@ -69,6 +70,42 @@ module.exports = {
 
     if (!task) {
       throw Errors.TASK_NOT_FOUND;
+    }
+
+    if (!_.isUndefined(values.name) && values.name !== prevTask.name) {
+      const boardMemberships = await sails.helpers.boards.getBoardMemberships(board.id);
+      const userIds = sails.helpers.utils.mapRecords(boardMemberships, 'userId');
+      const users = await sails.helpers.users.getMany(userIds);
+      const nextMentions = values.name
+        ? await sails.helpers.mentions.getMentions(values.name, users)
+        : [];
+      const prevMentions = prevTask.name
+        ? await sails.helpers.mentions.getMentions(prevTask.name, users)
+        : [];
+      const mentionUserIds = _.difference(
+        _.uniq(nextMentions.filter(Boolean)),
+        _.uniq(prevMentions.filter(Boolean)),
+      );
+
+      if (mentionUserIds.length > 0) {
+        await sails.helpers.actions.createOne.with({
+          values: {
+            card,
+            user: currentUser,
+            type: Action.Types.MENTION_CARD,
+            data: {
+              location: 'task',
+              taskId: task.id,
+              taskName: values.name,
+              text: values.name,
+            },
+          },
+          board,
+          request: this.req,
+          notifyUserIds: mentionUserIds,
+          withSubscriptions: false,
+        });
+      }
     }
 
     return {

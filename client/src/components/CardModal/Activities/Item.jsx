@@ -15,6 +15,7 @@ const Item = React.memo(({ type, data, createdAt, user }) => {
   const [t] = useTranslation();
 
   let contentNode;
+  let mentionLocationText;
   switch (type) {
     case ActivityTypes.CREATE_CARD:
       contentNode = (
@@ -52,6 +53,23 @@ const Item = React.memo(({ type, data, createdAt, user }) => {
             {data.toList.name}
           </span>
         </Trans>
+      );
+
+      break;
+    case ActivityTypes.MENTION_CARD:
+      if (data.location === 'task') {
+        mentionLocationText = `task ${data.taskName}`;
+      } else if (data.location === 'field') {
+        mentionLocationText = data.fieldName;
+      } else {
+        mentionLocationText = 'description';
+      }
+
+      contentNode = (
+        <>
+          <span className={styles.author}>{user.name}</span>
+          <span className={styles.text}>{` mentioned people in the ${mentionLocationText}`}</span>
+        </>
       );
 
       break;

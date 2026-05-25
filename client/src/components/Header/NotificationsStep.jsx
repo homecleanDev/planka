@@ -24,6 +24,8 @@ const NotificationsStep = React.memo(({ items, onDelete, onClose }) => {
 
   const renderItemContent = useCallback(
     ({ activity, card }) => {
+      let mentionLocationText;
+
       switch (activity.type) {
         case ActivityTypes.MOVE_CARD:
           return (
@@ -65,6 +67,27 @@ const NotificationsStep = React.memo(({ items, onDelete, onClose }) => {
                 {card.name}
               </Link>
             </Trans>
+          );
+        }
+        case ActivityTypes.MENTION_CARD: {
+          const mentionText = truncate(activity.data.text);
+          if (activity.data.location === 'task') {
+            mentionLocationText = `task ${activity.data.taskName}`;
+          } else if (activity.data.location === 'field') {
+            mentionLocationText = activity.data.fieldName;
+          } else {
+            mentionLocationText = 'description';
+          }
+
+          return (
+            <>
+              {activity.user.name}
+              {` mentioned you in the ${mentionLocationText}`}
+              {` «${mentionText}» on `}
+              <Link to={Paths.CARDS.replace(':id', card.id)} onClick={onClose}>
+                {card.name}
+              </Link>
+            </>
           );
         }
         default:

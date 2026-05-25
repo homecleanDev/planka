@@ -39,7 +39,7 @@ module.exports = {
   async fn(inputs) {
     const { currentUser } = this.req;
 
-    const { card } = await sails.helpers.cards
+    const { board, card } = await sails.helpers.cards
       .getProjectPath(inputs.cardId)
       .intercept('pathNotFound', () => Errors.CARD_NOT_FOUND);
 
@@ -65,6 +65,35 @@ module.exports = {
       },
       request: this.req,
     });
+
+    if (task.name) {
+      const boardMemberships = await sails.helpers.boards.getBoardMemberships(board.id);
+      const userIds = sails.helpers.utils.mapRecords(boardMemberships, 'userId');
+      const users = await sails.helpers.users.getMany(userIds);
+      const mentionUserIds = _.uniq(
+        (await sails.helpers.mentions.getMentions(task.name, users)).filter(Boolean),
+      );
+
+      if (mentionUserIds.length > 0) {
+        await sails.helpers.actions.createOne.with({
+          values: {
+            card,
+            user: currentUser,
+            type: Action.Types.MENTION_CARD,
+            data: {
+              location: 'task',
+              taskId: task.id,
+              taskName: task.name,
+              text: task.name,
+            },
+          },
+          board,
+          request: this.req,
+          notifyUserIds: mentionUserIds,
+          withSubscriptions: false,
+        });
+      }
+    }
 
     return {
       item: task,

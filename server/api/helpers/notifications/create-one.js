@@ -65,6 +65,29 @@ const buildAndSendEmail = async (user, board, card, action, notifiableUser) => {
 
       break;
     }
+    case Action.Types.MENTION_CARD: {
+      const boardMemberships = await sails.helpers.boards.getBoardMemberships(board.id);
+      const userIds = sails.helpers.utils.mapRecords(boardMemberships, 'userId');
+      const users = await sails.helpers.users.getMany(userIds);
+      const text = replaceMentionsWithLink(action.data.text, users);
+      const locationText =
+        action.data.location === 'task'
+          ? `task ${action.data.taskName}`
+          : action.data.location === 'field'
+            ? action.data.fieldName
+            : 'description';
+
+      emailData = {
+        subject: `${user.name} mentioned you in the ${locationText} of ${card.name} on ${board.name}`,
+        html:
+          `<p>${user.name} mentioned you in the ${locationText} of ` +
+          `<a href="${process.env.BASE_URL}/cards/${card.id}">${card.name}</a> ` +
+          `on <a href="${process.env.BASE_URL}/boards/${board.id}">${board.name}</a></p>` +
+          `<div style="display: flex; gap: 5px;">${text}</div>`,
+      };
+
+      break;
+    }
     default:
       return;
   }

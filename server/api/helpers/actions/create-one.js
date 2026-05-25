@@ -55,10 +55,14 @@ module.exports = {
     notifyUserIds: {
       type: 'json',
     },
+    withSubscriptions: {
+      type: 'boolean',
+      defaultsTo: true,
+    },
   },
 
   async fn(inputs) {
-    const { values, notifyUserIds } = inputs;
+    const { values, notifyUserIds, withSubscriptions } = inputs;
 
     const action = await Action.create({
       ...values,
@@ -75,12 +79,11 @@ module.exports = {
       inputs.request,
     );
 
-    const subscriptionUserIds = await sails.helpers.cards.getSubscriptionUserIds(
-      action.cardId,
-      action.userId,
-    );
+    const subscriptionUserIds = withSubscriptions
+      ? await sails.helpers.cards.getSubscriptionUserIds(action.cardId, action.userId)
+      : [];
 
-    const allUserIds = (subscriptionUserIds || []).concat(inputs.notifyUserIds || []);
+    const allUserIds = _.uniq((subscriptionUserIds || []).concat(notifyUserIds || []));
 
     await Promise.all(
       allUserIds

@@ -43,6 +43,17 @@ const stopwatchValidator = (value) => {
   return true;
 };
 
+const getNewMentionUserIds = async (nextText, prevText, users) => {
+  if (!nextText) {
+    return [];
+  }
+
+  const nextMentions = await sails.helpers.mentions.getMentions(nextText, users);
+  const prevMentions = prevText ? await sails.helpers.mentions.getMentions(prevText, users) : [];
+
+  return _.difference(_.uniq(nextMentions.filter(Boolean)), _.uniq(prevMentions.filter(Boolean)));
+};
+
 const cardFieldsValidator = (value) => {
   if (_.isNull(value)) {
     return true;
@@ -143,6 +154,7 @@ module.exports = {
 
     let { card } = path;
     const { list, board } = path;
+    const prevCard = card;
 
     let boardMembership = await BoardMembership.findOne({
       boardId: board.id,
@@ -218,6 +230,77 @@ module.exports = {
 
     if (!card) {
       throw Errors.CARD_NOT_FOUND;
+    }
+
+    if (!_.isUndefined(values.description) || !_.isUndefined(values.cardFields)) {
+      const notificationBoard = nextBoard || board;
+      const boardMemberships = await sails.helpers.boards.getBoardMemberships(notificationBoard.id);
+      const userIds = sails.helpers.utils.mapRecords(boardMemberships, 'userId');
+      const users = await sails.helpers.users.getMany(userIds);
+
+      if (!_.isUndefined(values.description) && values.description !== prevCard.description) {
+        const mentionUserIds = await getNewMentionUserIds(
+          values.description,
+          prevCard.description,
+          users,
+        );
+
+        if (mentionUserIds.length > 0) {
+          await sails.helpers.actions.createOne.with({
+            values: {
+              card,
+              user: currentUser,
+              type: Action.Types.MENTION_CARD,
+              data: {
+                location: 'description',
+                text: values.description,
+              },
+            },
+            board: notificationBoard,
+            request: this.req,
+            notifyUserIds: mentionUserIds,
+            withSubscriptions: false,
+          });
+        }
+      }
+
+      if (!_.isUndefined(values.cardFields) && !_.isNull(values.cardFields)) {
+        const prevFields = _.keyBy(prevCard.cardFields || [], 'id');
+
+        await Promise.all(
+          values.cardFields.map(async (field) => {
+            const prevFieldValue = prevFields[field.id] ? prevFields[field.id].value : null;
+
+            if (field.value === prevFieldValue) {
+              return;
+            }
+
+            const mentionUserIds = await getNewMentionUserIds(field.value, prevFieldValue, users);
+
+            if (mentionUserIds.length === 0) {
+              return;
+            }
+
+            await sails.helpers.actions.createOne.with({
+              values: {
+                card,
+                user: currentUser,
+                type: Action.Types.MENTION_CARD,
+                data: {
+                  location: 'field',
+                  fieldId: field.id,
+                  fieldName: field.name,
+                  text: field.value,
+                },
+              },
+              board: notificationBoard,
+              request: this.req,
+              notifyUserIds: mentionUserIds,
+              withSubscriptions: false,
+            });
+          }),
+        );
+      }
     }
 
     return {
