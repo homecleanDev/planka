@@ -35,6 +35,9 @@ export const transformCardData = (data) => ({
 
 /* Actions */
 
+const searchCards = (q, headers) =>
+  socket.get(`/cards/search?q=${encodeURIComponent(q)}`, undefined, headers);
+
 const createCard = (listId, data, headers) =>
   socket.post(`/lists/${listId}/cards`, transformCardData(data), headers).then((body) => ({
     ...body,
@@ -83,6 +86,7 @@ const makeHandleCardUpdate = makeHandleCardCreate;
 const makeHandleCardDelete = makeHandleCardCreate;
 
 export default {
+  searchCards,
   createCard,
   getCard,
   updateCard,

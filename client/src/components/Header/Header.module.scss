@@ -65,6 +65,20 @@
     width: 100%;
   }
 
+  .searchCenter {
+    left: 50%;
+    pointer-events: none;
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 40%;
+    z-index: 10;
+
+    >* {
+      pointer-events: auto;
+    }
+  }
+
   .notification {
     background: #eb5a46;
     border-radius: 8px;
@@ -94,5 +108,6 @@
     background: none;
     display: flex;
     flex: 0 0 auto;
+    position: relative;
   }
 }

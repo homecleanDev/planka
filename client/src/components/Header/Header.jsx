@@ -7,6 +7,7 @@ import { usePopup } from '../../lib/popup';
 
 import Paths from '../../constants/Paths';
 import NotificationsStep from './NotificationsStep';
+import Search from './Search';
 import User from '../User';
 import UserStep from '../UserStep';
 
@@ -45,6 +46,11 @@ const Header = React.memo(
           <Link to={Paths.ROOT} className={classNames(styles.logo, styles.title)}>
             Planka
           </Link>
+        )}
+        {project && (
+          <div className={styles.searchCenter}>
+            <Search projectId={project.id} />
+          </div>
         )}
         <Menu inverted size="large" className={styles.menu}>
           {project && (

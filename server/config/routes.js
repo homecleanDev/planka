@@ -35,6 +35,7 @@ module.exports.routes = {
   'GET /api/projects': 'projects/index',
   'POST /api/projects': 'projects/create',
   'GET /api/projects/:id': 'projects/show',
+  'GET /api/projects/:id/cards': 'projects/index-cards',
   'PATCH /api/projects/:id': 'projects/update',
   'POST /api/projects/:id/background-image': 'projects/update-background-image',
   'DELETE /api/projects/:id': 'projects/delete',
@@ -62,6 +63,7 @@ module.exports.routes = {
   'DELETE /api/lists/:id': 'lists/delete',
 
   'POST /api/lists/:listId/cards': 'cards/create',
+  'GET /api/cards/search': 'cards/search',
   'GET /api/cards/:id': 'cards/show',
   'PATCH /api/cards/:id': 'cards/update',
   'POST /api/cards/:id/duplicate': 'cards/duplicate',

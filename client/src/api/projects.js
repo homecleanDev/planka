@@ -37,6 +37,9 @@ const getProject = (id, headers) =>
     },
   }));
 
+const searchProjectCards = (id, search, headers) =>
+  socket.get(`/projects/${id}/cards?search=${encodeURIComponent(search)}`, undefined, headers);
+
 const updateProject = (id, data, headers) => socket.patch(`/projects/${id}`, data, headers);
 
 const updateProjectBackgroundImage = (id, data, headers) =>
@@ -48,6 +51,7 @@ export default {
   getProjects,
   createProject,
   getProject,
+  searchProjectCards,
   updateProject,
   updateProjectBackgroundImage,
   deleteProject,
