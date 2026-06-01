@@ -76,8 +76,21 @@ export const selectPath = createReduxOrmSelector(
   },
 );
 
+export const selectIsCardPathResolving = createReduxOrmSelector(
+  orm,
+  selectPathsMatch,
+  ({ Card }, pathsMatch) => {
+    if (!pathsMatch || pathsMatch.pattern.path !== Paths.CARDS) {
+      return false;
+    }
+
+    return !Card.withId(pathsMatch.params.id);
+  },
+);
+
 export default {
   selectPathname,
   selectPathsMatch,
   selectPath,
+  selectIsCardPathResolving,
 };

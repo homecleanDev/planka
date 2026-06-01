@@ -9,13 +9,21 @@ import BoardContainer from '../../containers/BoardContainer';
 
 import styles from './Static.module.scss';
 
-function Static({ projectId, cardId, board }) {
+function Static({ projectId, cardId, board, isCardResolving }) {
   const [t] = useTranslation();
 
   if (projectId === undefined) {
     return (
       <div className={styles.wrapper}>
         <ProjectsContainer />
+      </div>
+    );
+  }
+
+  if (isCardResolving) {
+    return (
+      <div className={classNames(styles.wrapper, styles.wrapperLoader, styles.wrapperProject)}>
+        <Loader active size="big" />
       </div>
     );
   }
@@ -99,6 +107,7 @@ Static.propTypes = {
   projectId: PropTypes.string,
   cardId: PropTypes.string,
   board: PropTypes.object, // eslint-disable-line react/forbid-prop-types
+  isCardResolving: PropTypes.bool.isRequired,
 };
 
 Static.defaultProps = {

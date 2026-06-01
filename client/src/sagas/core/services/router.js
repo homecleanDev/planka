@@ -6,6 +6,7 @@ import request from '../request';
 import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
+import mergeRecords from '../../../utils/merge-records';
 import { getAccessToken } from '../../../utils/access-token-storage';
 import ActionTypes from '../../../constants/ActionTypes';
 import Paths from '../../../constants/Paths';
@@ -71,7 +72,31 @@ export function* handleLocationChange() {
   switch (pathsMatch.pattern.path) {
     case Paths.BOARDS:
     case Paths.CARDS: {
-      const currentBoard = yield select(selectors.selectCurrentBoard);
+      let currentBoard = yield select(selectors.selectCurrentBoard);
+      let currentCard;
+      let currentCardMemberships;
+      let currentCardLabels;
+      let currentCardTasks;
+      let currentCardAttachments;
+
+      if (!currentBoard && pathsMatch.pattern.path === Paths.CARDS) {
+        try {
+          ({
+            item: currentCard,
+            included: {
+              cardMemberships: currentCardMemberships,
+              cardLabels: currentCardLabels,
+              tasks: currentCardTasks,
+              attachments: currentCardAttachments,
+            },
+          } = yield call(request, api.getCard, pathsMatch.params.id));
+
+          currentBoard = {
+            id: currentCard.boardId,
+            isFetching: null,
+          };
+        } catch (error) {} // eslint-disable-line no-empty
+      }
 
       if (currentBoard && currentBoard.isFetching === null) {
         yield put(actions.handleLocationChange.fetchBoard(currentBoard.id));
@@ -92,6 +117,12 @@ export function* handleLocationChange() {
               attachments,
             },
           } = yield call(request, api.getBoard, currentBoard.id, true));
+
+          cards = mergeRecords(cards, currentCard ? [currentCard] : []);
+          cardMemberships = mergeRecords(cardMemberships, currentCardMemberships);
+          cardLabels = mergeRecords(cardLabels, currentCardLabels);
+          tasks = mergeRecords(tasks, currentCardTasks);
+          attachments = mergeRecords(attachments, currentCardAttachments);
         } catch (error) {} // eslint-disable-line no-empty
       }
 
