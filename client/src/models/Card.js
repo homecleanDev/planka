@@ -75,13 +75,17 @@ export default class extends BaseModel {
 
         if (payload.cardMemberships) {
           payload.cardMemberships.forEach(({ cardId, userId }) => {
-            Card.withId(cardId).users.add(userId);
+            try {
+              Card.withId(cardId).users.add(userId);
+            } catch {} // eslint-disable-line no-empty
           });
         }
 
         if (payload.cardLabels) {
           payload.cardLabels.forEach(({ cardId, labelId }) => {
-            Card.withId(cardId).labels.add(labelId);
+            try {
+              Card.withId(cardId).labels.add(labelId);
+            } catch {} // eslint-disable-line no-empty
           });
         }
 
@@ -101,13 +105,17 @@ export default class extends BaseModel {
 
         if (payload.cardMemberships) {
           payload.cardMemberships.forEach(({ cardId, userId }) => {
-            Card.withId(cardId).users.add(userId);
+            try {
+              Card.withId(cardId).users.add(userId);
+            } catch {} // eslint-disable-line no-empty
           });
         }
 
         if (payload.cardLabels) {
           payload.cardLabels.forEach(({ cardId, labelId }) => {
-            Card.withId(cardId).labels.add(labelId);
+            try {
+              Card.withId(cardId).labels.add(labelId);
+            } catch {} // eslint-disable-line no-empty
           });
         }
 

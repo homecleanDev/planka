@@ -11,6 +11,41 @@ import { getAccessToken } from '../../../utils/access-token-storage';
 import ActionTypes from '../../../constants/ActionTypes';
 import Paths from '../../../constants/Paths';
 
+const mergeCardMemberships = (target, source) => {
+  const nextTarget = [...(target || [])];
+
+  (source || []).forEach((sourceRecord) => {
+    const isExisting = nextTarget.some(
+      (targetRecord) =>
+        targetRecord.cardId === sourceRecord.cardId && targetRecord.userId === sourceRecord.userId,
+    );
+
+    if (!isExisting) {
+      nextTarget.push(sourceRecord);
+    }
+  });
+
+  return nextTarget;
+};
+
+const mergeCardLabels = (target, source) => {
+  const nextTarget = [...(target || [])];
+
+  (source || []).forEach((sourceRecord) => {
+    const isExisting = nextTarget.some(
+      (targetRecord) =>
+        targetRecord.cardId === sourceRecord.cardId &&
+        targetRecord.labelId === sourceRecord.labelId,
+    );
+
+    if (!isExisting) {
+      nextTarget.push(sourceRecord);
+    }
+  });
+
+  return nextTarget;
+};
+
 export function* goToRoot() {
   yield put(push(Paths.ROOT));
 }
@@ -119,8 +154,8 @@ export function* handleLocationChange() {
           } = yield call(request, api.getBoard, currentBoard.id, true));
 
           cards = mergeRecords(cards, currentCard ? [currentCard] : []);
-          cardMemberships = mergeRecords(cardMemberships, currentCardMemberships);
-          cardLabels = mergeRecords(cardLabels, currentCardLabels);
+          cardMemberships = mergeCardMemberships(cardMemberships, currentCardMemberships);
+          cardLabels = mergeCardLabels(cardLabels, currentCardLabels);
           tasks = mergeRecords(tasks, currentCardTasks);
           attachments = mergeRecords(attachments, currentCardAttachments);
         } catch (error) {} // eslint-disable-line no-empty
