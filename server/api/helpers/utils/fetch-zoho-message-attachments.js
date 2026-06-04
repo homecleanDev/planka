@@ -2,7 +2,19 @@ const filenamify = require('filenamify');
 const { v4: uuid } = require('uuid');
 const sharp = require('sharp');
 
+const LOG_VERSION = 'inline-api-v2';
 const toArray = (value) => (Array.isArray(value) ? value : value ? [value] : []);
+const IMAGE_TAG_REGEX = /<img\b([^>]*)>/gi;
+const HTML_ENTITY_MAP = {
+  '&amp;': '&',
+  '&lt;': '<',
+  '&gt;': '>',
+  '&quot;': '"',
+  '&#39;': "'",
+};
+
+const decodeHtmlEntities = (value) =>
+  value.replace(/&amp;|&lt;|&gt;|&quot;|&#39;/gi, (match) => HTML_ENTITY_MAP[match] || match);
 
 const pickData = (body) => {
   if (!body) {
@@ -39,12 +51,27 @@ const getAttachmentId = (attachment) =>
   attachment.partId ||
   null;
 
+const getInlineContentId = (attachment) =>
+  attachment.contentId ||
+  attachment.contentID ||
+  attachment.cid ||
+  attachment.content_id ||
+  null;
+
 const getAttachmentName = (attachment, fallbackName) =>
   attachment.attachmentName ||
   attachment.fileName ||
   attachment.name ||
   attachment.file_name ||
   fallbackName;
+
+const isInlineAttachment = (attachment) =>
+  attachment.isInline === true ||
+  attachment.inline === true ||
+  attachment.contentDisposition === 'inline' ||
+  attachment.disposition === 'inline' ||
+  (_.isString(attachment.cid) && attachment.cid.length > 0) ||
+  (_.isString(attachment.contentId) && attachment.contentId.length > 0);
 
 const getFilenameFromContentDisposition = (value) => {
   if (!_.isString(value)) {
@@ -57,6 +84,82 @@ const getFilenameFromContentDisposition = (value) => {
   }
 
   return decodeURIComponent(match[1].trim().replace(/"$/, ''));
+};
+
+const getCandidateKey = (attachment) =>
+  getAttachmentId(attachment) || getInlineContentId(attachment) || null;
+
+const getPayloadMessageIds = (payload, fallbackMessageId) => {
+  const result = [];
+
+  [fallbackMessageId, payload?.messageIdString, payload?.messageId].forEach((value) => {
+    const messageId =
+      (_.isFinite(value) || _.isString(value)) && String(value).trim() ? String(value).trim() : null;
+
+    if (messageId && !result.includes(messageId)) {
+      result.push(messageId);
+    }
+  });
+
+  return result;
+};
+
+const getInlineContentIdCandidates = (contentId) => {
+  if (!_.isString(contentId) || !contentId.trim()) {
+    return [];
+  }
+
+  const result = [contentId];
+  const stripped = contentId.replace(/__inline__img__src$/i, '');
+
+  if (stripped && stripped !== contentId) {
+    result.push(stripped);
+  }
+
+  return result;
+};
+
+const getInlineAcceptHeaderCandidates = () => [
+  undefined,
+  'image/*',
+  'application/octet-stream',
+  '*/*',
+  'application/json',
+];
+
+const extractInlineImageCandidates = (payload) => {
+  if (!_.isPlainObject(payload) || !_.isString(payload.html) || !payload.html.trim()) {
+    return [];
+  }
+
+  const result = [];
+  let match = IMAGE_TAG_REGEX.exec(payload.html);
+
+  while (match) {
+    const attrs = match[1];
+    const srcMatch = attrs.match(/\bsrc=(['"])(.*?)\1/i);
+    const rawSrc = srcMatch ? decodeHtmlEntities(srcMatch[2]) : null;
+
+    if (rawSrc && rawSrc.startsWith('/zm/ImageDisplay')) {
+      const url = new URL(rawSrc, 'https://mail.zoho.com');
+      const contentId = url.searchParams.get('cid');
+      const fileName = url.searchParams.get('f');
+
+      if (contentId && fileName) {
+        result.push({
+          contentId,
+          fileName,
+          inline: true,
+        });
+      }
+    }
+
+    match = IMAGE_TAG_REGEX.exec(payload.html);
+  }
+
+  IMAGE_TAG_REGEX.lastIndex = 0;
+
+  return result;
 };
 
 const resolveBodyBuffer = async (response) => {
@@ -172,15 +275,21 @@ module.exports = {
         accountId: inputs.accountId,
         folderId: inputs.folderId,
         messageId: inputs.messageId,
+        version: LOG_VERSION,
       }),
     );
 
     const payload = _.isPlainObject(inputs.payload) ? inputs.payload : null;
+    const messageIds = getPayloadMessageIds(payload, inputs.messageId);
     const payloadAttachmentInfos = payload ? getAttachmentCandidates(payload) : [];
+    const inlineImageInfos = extractInlineImageCandidates(payload);
     sails.log.info(
       'PlankaZoho:attachment payload-candidates',
       JSON.stringify({
         count: payloadAttachmentInfos.length,
+        inlineImageCount: inlineImageInfos.length,
+        inlineImageIds: inlineImageInfos.map((item) => item.contentId),
+        messageIds,
       }),
     );
 
@@ -188,7 +297,7 @@ module.exports = {
       `/api/accounts/${inputs.accountId}/folders/${inputs.folderId}/messages/${inputs.messageId}/attachmentinfo`,
       inputs.baseUrl,
     );
-    attachmentInfoUrl.searchParams.set('includeInline', 'false');
+    attachmentInfoUrl.searchParams.set('includeInline', 'true');
 
     const messageResponse = await fetch(attachmentInfoUrl, {
       method: 'GET',
@@ -198,6 +307,8 @@ module.exports = {
       },
     });
 
+    let messageData = null;
+
     if (!messageResponse.ok) {
       sails.log.warn(
         'PlankaZoho:attachment attachmentinfo-fetch-failed',
@@ -205,29 +316,30 @@ module.exports = {
           status: messageResponse.status,
         }),
       );
-      return [];
+    } else {
+      const messageBody = await messageResponse.json();
+      messageData = pickData(messageBody);
     }
 
-    const messageBody = await messageResponse.json();
-    const messageData = pickData(messageBody);
-    if (!messageData) {
+    if (!messageData && inlineImageInfos.length === 0) {
       sails.log.warn('PlankaZoho:attachment attachmentinfo-data-empty');
       return [];
     }
 
     const attachmentInfos = [
       ...payloadAttachmentInfos,
-      ...getAttachmentCandidates(messageData),
+      ...(messageData ? getAttachmentCandidates(messageData) : []),
+      ...inlineImageInfos,
     ].filter((item, index, arr) => {
-      const id = getAttachmentId(item);
-      return !!id && arr.findIndex((candidate) => getAttachmentId(candidate) === id) === index;
+      const key = getCandidateKey(item);
+      return !!key && arr.findIndex((candidate) => getCandidateKey(candidate) === key) === index;
     });
 
     sails.log.info(
       'PlankaZoho:attachment merged-candidates',
       JSON.stringify({
         count: attachmentInfos.length,
-        ids: attachmentInfos.map((item) => getAttachmentId(item)).filter(Boolean),
+        ids: attachmentInfos.map((item) => getCandidateKey(item)).filter(Boolean),
       }),
     );
     if (attachmentInfos.length === 0) {
@@ -241,37 +353,81 @@ module.exports = {
     await Promise.all(
       attachmentInfos.map(async (attachment, index) => {
         const attachmentId = getAttachmentId(attachment);
-        if (!attachmentId) {
+        const inlineContentId = getInlineContentId(attachment);
+        const candidateKey = getCandidateKey(attachment);
+        if (!candidateKey) {
           sails.log.warn('PlankaZoho:attachment missing-attachment-id');
           return;
         }
 
-        const downloadPaths = [
-          `/api/accounts/${inputs.accountId}/folders/${inputs.folderId}/messages/${inputs.messageId}/attachments/${attachmentId}`,
-          `/api/accounts/${inputs.accountId}/messages/${inputs.messageId}/attachments/${attachmentId}`,
-        ];
+        const downloadTargets = [];
+        const inlineFileName = getAttachmentName(attachment, `inline-image-${index + 1}.png`);
+
+        if (inlineContentId && inlineFileName) {
+          getInlineContentIdCandidates(inlineContentId).forEach((contentId) => {
+            messageIds.forEach((messageId) => {
+              getInlineAcceptHeaderCandidates().forEach((accept) => {
+                const inlineUrl = new URL(
+                  `/api/accounts/${inputs.accountId}/folders/${inputs.folderId}/messages/${messageId}/inline`,
+                  inputs.baseUrl,
+                );
+                inlineUrl.searchParams.set('contentId', contentId);
+                inlineUrl.searchParams.set('fileName', inlineFileName);
+                downloadTargets.push({
+                  url: inlineUrl,
+                  inline: true,
+                  contentId,
+                  messageId,
+                  accept,
+                });
+              });
+            });
+          });
+        }
+
+        if (attachmentId) {
+          [
+            `/api/accounts/${inputs.accountId}/folders/${inputs.folderId}/messages/${inputs.messageId}/attachments/${attachmentId}`,
+            `/api/accounts/${inputs.accountId}/messages/${inputs.messageId}/attachments/${attachmentId}`,
+          ].forEach((path) =>
+            downloadTargets.push({
+              url: new URL(path, inputs.baseUrl),
+              inline: false,
+            }),
+          );
+        }
 
         let buffer = null;
         let contentType = 'application/octet-stream';
         let headerFilename = null;
 
-        for (const path of downloadPaths) {
-          const downloadUrl = new URL(path, inputs.baseUrl);
+        for (const target of downloadTargets) {
+          const { url: downloadUrl } = target;
           sails.log.info(
             'PlankaZoho:attachment download-attempt',
             JSON.stringify({
-              attachmentId,
+              attachmentId: candidateKey,
+              inline: target.inline || isInlineAttachment(attachment),
+              contentId: target.contentId,
+              messageId: target.messageId || inputs.messageId,
+              accept: target.accept || 'none',
               path: downloadUrl.pathname,
             }),
           );
 
+          const headers = {
+            Authorization: `Zoho-oauthtoken ${inputs.oAuthToken}`,
+          };
+
+          if (target.accept) {
+            headers.Accept = target.accept;
+          } else if (!target.inline) {
+            headers.Accept = 'application/octet-stream';
+          }
+
           const downloadResponse = await fetch(downloadUrl, {
             method: 'GET',
-            headers: {
-              Accept: 'application/octet-stream',
-              'Content-Type': 'application/json',
-              Authorization: `Zoho-oauthtoken ${inputs.oAuthToken}`,
-            },
+            headers,
           });
 
           if (!downloadResponse.ok) {
@@ -283,7 +439,11 @@ module.exports = {
             sails.log.warn(
               'PlankaZoho:attachment download-failed',
               JSON.stringify({
-                attachmentId,
+                attachmentId: candidateKey,
+                inline: target.inline || isInlineAttachment(attachment),
+                contentId: target.contentId,
+                messageId: target.messageId || inputs.messageId,
+                accept: target.accept || 'none',
                 status: downloadResponse.status,
                 path: downloadUrl.pathname,
                 body: errorPreview,
@@ -302,7 +462,11 @@ module.exports = {
             sails.log.info(
               'PlankaZoho:attachment download-success',
               JSON.stringify({
-                attachmentId,
+                attachmentId: candidateKey,
+                inline: target.inline || isInlineAttachment(attachment),
+                contentId: target.contentId,
+                messageId: target.messageId || inputs.messageId,
+                accept: target.accept || 'none',
                 bytes: buffer.length,
                 path: downloadUrl.pathname,
               }),
@@ -315,7 +479,8 @@ module.exports = {
           sails.log.warn(
             'PlankaZoho:attachment empty-download-buffer',
             JSON.stringify({
-              attachmentId,
+              attachmentId: candidateKey,
+              inline: isInlineAttachment(attachment),
             }),
           );
           return;
@@ -344,7 +509,8 @@ module.exports = {
           sails.log.warn(
             'PlankaZoho:attachment thumbnail-failed',
             JSON.stringify({
-              attachmentId,
+              attachmentId: candidateKey,
+              inline: isInlineAttachment(attachment),
               filename,
               error: error.message,
             }),
@@ -355,6 +521,10 @@ module.exports = {
           dirname,
           filename,
           image,
+          inlineContentId: inlineContentId || null,
+          inlineContentIdCandidates: inlineContentId
+            ? getInlineContentIdCandidates(inlineContentId)
+            : [],
           name: inferredFilename || filename,
           url,
         });
@@ -362,7 +532,8 @@ module.exports = {
         sails.log.info(
           'PlankaZoho:attachment upload-success',
           JSON.stringify({
-            attachmentId,
+            attachmentId: candidateKey,
+            inline: isInlineAttachment(attachment),
             filename,
             url,
           }),

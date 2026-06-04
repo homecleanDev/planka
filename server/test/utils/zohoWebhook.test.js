@@ -1,6 +1,11 @@
 const { expect } = require('chai');
 
-const { getDescription, getThreadMessageIds, htmlToMarkdown } = require('../../utils/zohoWebhook');
+const {
+  getDescription,
+  getReplyDescription,
+  getThreadMessageIds,
+  htmlToMarkdown,
+} = require('../../utils/zohoWebhook');
 
 describe('zohoWebhook utils', () => {
   describe('#htmlToMarkdown()', () => {
@@ -29,6 +34,14 @@ describe('zohoWebhook utils', () => {
         'Sample email with forwarded message\n\n---------- Forwarded message ---------\nFrom: <[noreply@example.com](mailto:noreply@example.com)>\n\nGreetings from MediCard GO!\n\nThank you.\n\n*(This is an auto-generated email. Please do not respond.)*',
       );
     });
+
+    it('keeps Zoho relative inline image placeholders for replacement after import', () => {
+      const result = htmlToMarkdown(
+        '<div>With image</div><div><img src="/zm/ImageDisplay?f=1.png&amp;mode=inline&amp;cid=abc"></div>',
+      );
+
+      expect(result).to.equal('With image\n![image](zoho-inline-image:abc)');
+    });
   });
 
   describe('#getDescription()', () => {
@@ -47,6 +60,32 @@ describe('zohoWebhook utils', () => {
       });
 
       expect(result).to.equal('Line 1\n\nLine 2');
+    });
+  });
+
+  describe('#getReplyDescription()', () => {
+    it('strips quoted email thread content from replies', () => {
+      const result = getReplyDescription({
+        html: '<div>Testing</div><br><div>On Fri, Apr 17, 2026 at 9:33 PM Albert &lt;test@example.com&gt; wrote:<br></div><blockquote><div>Previous message</div></blockquote>',
+      });
+
+      expect(result).to.equal('Testing');
+    });
+
+    it('strips common signature blocks from replies', () => {
+      const result = getReplyDescription({
+        html: '<div>Actual reply</div><div><br></div><div>Kind regards,</div><div>Albert</div><div>IT Consultant</div>',
+      });
+
+      expect(result).to.equal('Actual reply');
+    });
+
+    it('keeps inline image placeholders before the stripped signature', () => {
+      const result = getReplyDescription({
+        html: '<div>See image</div><div><img src="/zm/ImageDisplay?f=1.png&amp;mode=inline&amp;cid=abc"></div><div>Regards,</div><div>Albert</div>',
+      });
+
+      expect(result).to.equal('See image\n![image](zoho-inline-image:abc)');
     });
   });
 

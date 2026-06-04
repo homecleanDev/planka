@@ -24,6 +24,25 @@ const HTML_ENTITY_MAP = {
   '&#39;': "'",
 };
 const RFC_MESSAGE_ID_REGEX = /<([^>]+)>/g;
+const ZOHO_INLINE_IMAGE_SCHEME = 'zoho-inline-image:';
+const REPLY_SEPARATOR_PATTERNS = [
+  /^On .+ wrote:$/i,
+  /^-----Original Message-----$/i,
+  /^From:\s.+$/i,
+  /^Sent:\s.+$/i,
+  /^To:\s.+$/i,
+  /^Subject:\s.+$/i,
+  /^_{5,}$/,
+  /^-{2,}\s*Forwarded message\s*-{2,}$/i,
+];
+const SIGNATURE_START_PATTERNS = [
+  /^--\s*$/,
+  /^Kind regards,?$/i,
+  /^Regards,?$/i,
+  /^Best regards,?$/i,
+  /^Thanks,?$/i,
+  /^Thank you,?$/i,
+];
 
 const normalizeLineBreaks = (value) => value.replace(/\r\n?/g, '\n');
 
@@ -76,10 +95,66 @@ const htmlToMarkdown = (value) => {
       const src = srcMatch ? decodeHtmlEntities(srcMatch[2]) : '';
       const alt = altMatch ? htmlFragmentToText(altMatch[2]) : 'image';
 
+      if (src.startsWith('/zm/ImageDisplay')) {
+        const url = new URL(src, 'https://mail.zoho.com');
+        const contentId = url.searchParams.get('cid');
+
+        return contentId
+          ? `![${alt || 'image'}](${ZOHO_INLINE_IMAGE_SCHEME}${encodeURIComponent(contentId)})`
+          : '';
+      }
+
       return src ? `![${alt || 'image'}](${src})` : '';
     });
 
   return htmlFragmentToText(markdown);
+};
+
+const replaceInlineImagePlaceholders = (value, replacements) => {
+  if (!_.isString(value) || !_.isPlainObject(replacements)) {
+    return value;
+  }
+
+  return value.replace(
+    new RegExp(`${ZOHO_INLINE_IMAGE_SCHEME}([^\\)\\s]+)`, 'g'),
+    (match, encodedContentId) => {
+      const contentId = decodeURIComponent(encodedContentId);
+
+      return replacements[contentId] || match;
+    },
+  );
+};
+
+const stripReplyThread = (value) => {
+  if (!_.isString(value)) {
+    return value;
+  }
+
+  const lines = normalizeLineBreaks(value).split('\n');
+  const separatorIndex = lines.findIndex((line) =>
+    REPLY_SEPARATOR_PATTERNS.some((pattern) => pattern.test(line.trim())),
+  );
+  const relevantLines = separatorIndex >= 0 ? lines.slice(0, separatorIndex) : lines;
+
+  return normalizeWhitespace(relevantLines.join('\n'));
+};
+
+const stripSignature = (value) => {
+  if (!_.isString(value)) {
+    return value;
+  }
+
+  const lines = normalizeLineBreaks(value).split('\n');
+  const signatureIndex = lines.findIndex((line, index) => {
+    if (index === 0) {
+      return false;
+    }
+
+    return SIGNATURE_START_PATTERNS.some((pattern) => pattern.test(line.trim()));
+  });
+  const relevantLines = signatureIndex >= 0 ? lines.slice(0, signatureIndex) : lines;
+
+  return normalizeWhitespace(relevantLines.join('\n'));
 };
 
 const getDescriptionSource = (payload) => {
@@ -110,8 +185,23 @@ const getDescriptionSource = (payload) => {
   };
 };
 
+const getReplyDescriptionSource = (payload) => {
+  const result = getDescriptionSource(payload);
+
+  return {
+    ...result,
+    value: stripSignature(stripReplyThread(result.value)),
+  };
+};
+
 const getDescription = (payload) => {
   const { value } = getDescriptionSource(payload);
+
+  return value;
+};
+
+const getReplyDescription = (payload) => {
+  const { value } = getReplyDescriptionSource(payload);
 
   return value;
 };
@@ -196,8 +286,11 @@ const getThreadMessageIds = (payload, headerContent) => {
 
 module.exports = {
   getDescription,
+  getReplyDescription,
   getDescriptionSource,
+  getReplyDescriptionSource,
   htmlToMarkdown,
+  replaceInlineImagePlaceholders,
   extractMessageIds,
   getThreadMessageIds,
 };

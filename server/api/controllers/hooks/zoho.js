@@ -1,7 +1,12 @@
 const POSITION_GAP = 65535;
 
 const EMAIL_REGEX = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
-const { getDescriptionSource, getThreadMessageIds } = require('../../../utils/zohoWebhook');
+const {
+  getDescriptionSource,
+  getReplyDescriptionSource,
+  getThreadMessageIds,
+  replaceInlineImagePlaceholders,
+} = require('../../../utils/zohoWebhook');
 
 const extractEmails = (...values) =>
   values
@@ -68,6 +73,111 @@ const saveMessageIds = async (projectId, cardId, messageIds) =>
     ),
   );
 
+const getAttachmentPublicUrl = (fileData) =>
+  `https://${process.env.AWS_BUCKET}.s3.${process.env.AWS_DEFAULT_REGION}.amazonaws.com/${fileData.url}`;
+
+const buildInlineImageReplacements = (fileDataItems) =>
+  fileDataItems.reduce((result, fileData) => {
+    const inlineContentIds = Array.isArray(fileData.inlineContentIdCandidates)
+      ? fileData.inlineContentIdCandidates
+      : [];
+
+    inlineContentIds.forEach((contentId) => {
+      // eslint-disable-next-line no-param-reassign
+      result[contentId] = getAttachmentPublicUrl(fileData);
+    });
+
+    return result;
+  }, {});
+
+const getPathOrNull = async (deferred) => {
+  try {
+    return await deferred;
+  } catch (error) {
+    if (error === 'pathNotFound' || error?.code === 'pathNotFound') {
+      return null;
+    }
+
+    throw error;
+  }
+};
+
+const importZohoAttachments = async ({
+  project,
+  card,
+  creatorUser,
+  payload,
+  zohoAccountId,
+  zohoAccessToken,
+  folderId,
+  messageId,
+  request,
+}) => {
+  if (!(zohoAccountId && zohoAccessToken && folderId && messageId)) {
+    sails.log.info(
+      'PlankaZoho:attachment import-skipped',
+      JSON.stringify({
+        hasZohoAccountId: !!zohoAccountId,
+        hasZohoAccessToken: !!zohoAccessToken,
+        hasFolderId: !!folderId,
+        hasMessageId: !!messageId,
+      }),
+    );
+
+    return {
+      uploadedAttachments: [],
+      inlineImageReplacements: {},
+    };
+  }
+
+  sails.log.info(
+    'PlankaZoho:attachment import-start',
+    JSON.stringify({
+      projectId: project.id,
+      cardId: card.id,
+      folderId,
+      messageId,
+      hasAttachment: payload.hasAttachment,
+    }),
+  );
+
+  const uploadedAttachments = await sails.helpers.utils.fetchZohoMessageAttachments.with({
+    baseUrl: sails.config.custom.zohoMailApiBaseUrl,
+    accountId: zohoAccountId,
+    oAuthToken: zohoAccessToken,
+    folderId,
+    messageId,
+    payload,
+  });
+
+  await Promise.all(
+    uploadedAttachments.map((fileData) =>
+      sails.helpers.attachments.createOne.with({
+        values: {
+          ...fileData,
+          card,
+          creatorUser,
+        },
+        request,
+      }),
+    ),
+  );
+
+  sails.log.info(
+    'PlankaZoho:attachment card-attachments-created',
+    JSON.stringify({
+      projectId: project.id,
+      cardId: card.id,
+      count: uploadedAttachments.length,
+    }),
+  );
+
+  return {
+    uploadedAttachments,
+    inlineImageReplacements: buildInlineImageReplacements(uploadedAttachments),
+  };
+};
+
 const refreshZohoAccessToken = async (refreshToken) => {
   const refreshUrl = new URL('/oauth/v2/token', sails.config.custom.zohoOauthAccountsBaseUrl);
 
@@ -123,6 +233,11 @@ module.exports = {
     const { value: rawDescription } = getDescriptionSource(payload);
     const description =
       _.isString(rawDescription) && rawDescription.trim().length === 0 ? null : rawDescription;
+    const { value: rawReplyDescription } = getReplyDescriptionSource(payload);
+    const replyDescription =
+      _.isString(rawReplyDescription) && rawReplyDescription.trim().length === 0
+        ? null
+        : rawReplyDescription;
 
     const legacyProject = await Project.findOne({
       zohoWebhookToken: inputs.token,
@@ -155,11 +270,12 @@ module.exports = {
       return this.res.notFound();
     }
 
-    const { list, board } = await sails.helpers.lists
-      .getProjectPath({
+    const listPath = await getPathOrNull(
+      sails.helpers.lists.getProjectPath({
         id: webhook.listId,
-      })
-      .intercept('pathNotFound', () => null);
+      }),
+    );
+    const { list, board } = listPath || {};
 
     if (!list || !board || board.projectId !== project.id) {
       return this.res.notFound();
@@ -273,20 +389,17 @@ module.exports = {
       }).sort('createdAt DESC');
 
       if (links.length > 0) {
-        const {
-          card,
-          board: replyBoard,
-          project: replyProject,
-        } = await sails.helpers.cards
-          .getProjectPath({
+        const replyPath = await getPathOrNull(
+          sails.helpers.cards.getProjectPath({
             id: links[0].cardId,
-          })
-          .intercept('pathNotFound', () => null);
+          }),
+        );
+        const { card, board: replyBoard, project: replyProject } = replyPath || {};
 
         if (card && replyBoard && replyProject && replyProject.id === project.id) {
-          const commentText = description || '(No content)';
+          const commentText = replyDescription || '(No content)';
 
-          await sails.helpers.actions.createOne.with({
+          const action = await sails.helpers.actions.createOne.with({
             board: replyBoard,
             values: {
               type: Action.Types.COMMENT_CARD,
@@ -298,6 +411,41 @@ module.exports = {
             },
             request: this.req,
           });
+
+          try {
+            const { inlineImageReplacements } = await importZohoAttachments({
+              project,
+              card,
+              creatorUser,
+              payload,
+              zohoAccountId,
+              zohoAccessToken,
+              folderId,
+              messageId,
+              request: this.req,
+            });
+
+            const nextCommentText = replaceInlineImagePlaceholders(
+              commentText,
+              inlineImageReplacements,
+            );
+
+            if (nextCommentText !== commentText) {
+              await sails.helpers.actions.updateOne.with({
+                record: action,
+                values: {
+                  data: {
+                    ...action.data,
+                    text: nextCommentText,
+                  },
+                },
+                board: replyBoard,
+                request: this.req,
+              });
+            }
+          } catch (error) {
+            sails.log.warn('PlankaZoho:attachment import-error', error.message);
+          }
 
           if (currentMessageIds.length > 0) {
             await saveMessageIds(project.id, card.id, currentMessageIds);
@@ -368,52 +516,32 @@ module.exports = {
       ),
     );
 
-    if (zohoAccountId && zohoAccessToken && folderId && messageId) {
-      try {
-        sails.log.info(
-          'PlankaZoho:attachment import-start',
-          JSON.stringify({
-            projectId: project.id,
-            cardId: card.id,
-            folderId,
-            messageId,
-            hasAttachment: payload.hasAttachment,
-          }),
-        );
+    try {
+      const { inlineImageReplacements } = await importZohoAttachments({
+        project,
+        card,
+        creatorUser,
+        payload,
+        zohoAccountId,
+        zohoAccessToken,
+        folderId,
+        messageId,
+        request: this.req,
+      });
 
-        const uploadedAttachments = await sails.helpers.utils.fetchZohoMessageAttachments.with({
-          baseUrl: sails.config.custom.zohoMailApiBaseUrl,
-          accountId: zohoAccountId,
-          oAuthToken: zohoAccessToken,
-          folderId,
-          messageId,
-          payload,
+      const nextDescription = replaceInlineImagePlaceholders(description, inlineImageReplacements);
+
+      if (nextDescription !== description) {
+        await sails.helpers.cards.updateOne.with({
+          record: card,
+          values: {
+            description: nextDescription,
+          },
+          request: this.req,
         });
-
-        await Promise.all(
-          uploadedAttachments.map((fileData) =>
-            sails.helpers.attachments.createOne.with({
-              values: {
-                ...fileData,
-                card,
-                creatorUser,
-              },
-              request: this.req,
-            }),
-          ),
-        );
-
-        sails.log.info(
-          'PlankaZoho:attachment card-attachments-created',
-          JSON.stringify({
-            projectId: project.id,
-            cardId: card.id,
-            count: uploadedAttachments.length,
-          }),
-        );
-      } catch (error) {
-        sails.log.warn('PlankaZoho:attachment import-error', error.message);
       }
+    } catch (error) {
+      sails.log.warn('PlankaZoho:attachment import-error', error.message);
     }
 
     if (currentMessageIds.length > 0) {
