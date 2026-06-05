@@ -5,6 +5,7 @@ const {
   getReplyDescription,
   getThreadMessageIds,
   htmlToMarkdown,
+  replaceInlineImagePlaceholders,
 } = require('../../utils/zohoWebhook');
 
 describe('zohoWebhook utils', () => {
@@ -86,6 +87,33 @@ describe('zohoWebhook utils', () => {
       });
 
       expect(result).to.equal('See image\n![image](zoho-inline-image:abc)');
+    });
+
+    it('strips equals-style forwarded message history', () => {
+      const result = getReplyDescription({
+        html: '<div>Hi Syria, just a test for the attachment!</div><div>============ Forwarded message ============</div><div>Previous content</div>',
+      });
+
+      expect(result).to.equal('Hi Syria, just a test for the attachment!');
+    });
+  });
+
+  describe('#replaceInlineImagePlaceholders()', () => {
+    it('replaces inline image placeholders with uploaded URLs', () => {
+      const result = replaceInlineImagePlaceholders('See ![image](zoho-inline-image:abc)', {
+        abc: 'https://example.com/abc.png',
+      });
+
+      expect(result).to.equal('See ![image](https://example.com/abc.png)');
+    });
+
+    it('removes unresolved inline image placeholders', () => {
+      const result = replaceInlineImagePlaceholders(
+        'See ![image](zoho-inline-image:missing) after',
+        {},
+      );
+
+      expect(result).to.equal('See  after');
     });
   });
 

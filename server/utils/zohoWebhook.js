@@ -28,6 +28,7 @@ const ZOHO_INLINE_IMAGE_SCHEME = 'zoho-inline-image:';
 const REPLY_SEPARATOR_PATTERNS = [
   /^On .+ wrote:$/i,
   /^-----Original Message-----$/i,
+  /^={2,}\s*Forwarded message\s*={2,}$/i,
   /^From:\s.+$/i,
   /^Sent:\s.+$/i,
   /^To:\s.+$/i,
@@ -43,6 +44,8 @@ const SIGNATURE_START_PATTERNS = [
   /^Thanks,?$/i,
   /^Thank you,?$/i,
 ];
+
+const normalizeMarkerLine = (value) => value.replace(/^[*_`~\s]+|[*_`~\s]+$/g, '').trim();
 
 const normalizeLineBreaks = (value) => value.replace(/\r\n?/g, '\n');
 
@@ -115,12 +118,22 @@ const replaceInlineImagePlaceholders = (value, replacements) => {
     return value;
   }
 
-  return value.replace(
+  const withImages = value.replace(
+    new RegExp(`!\\[([^\\]]*)\\]\\(${ZOHO_INLINE_IMAGE_SCHEME}([^\\)\\s]+)\\)`, 'g'),
+    (match, alt, encodedContentId) => {
+      const contentId = decodeURIComponent(encodedContentId);
+      const replacement = replacements[contentId];
+
+      return replacement ? `![${alt || 'image'}](${replacement})` : '';
+    },
+  );
+
+  return withImages.replace(
     new RegExp(`${ZOHO_INLINE_IMAGE_SCHEME}([^\\)\\s]+)`, 'g'),
     (match, encodedContentId) => {
       const contentId = decodeURIComponent(encodedContentId);
 
-      return replacements[contentId] || match;
+      return replacements[contentId] || '';
     },
   );
 };
@@ -132,7 +145,7 @@ const stripReplyThread = (value) => {
 
   const lines = normalizeLineBreaks(value).split('\n');
   const separatorIndex = lines.findIndex((line) =>
-    REPLY_SEPARATOR_PATTERNS.some((pattern) => pattern.test(line.trim())),
+    REPLY_SEPARATOR_PATTERNS.some((pattern) => pattern.test(normalizeMarkerLine(line))),
   );
   const relevantLines = separatorIndex >= 0 ? lines.slice(0, separatorIndex) : lines;
 
@@ -150,7 +163,7 @@ const stripSignature = (value) => {
       return false;
     }
 
-    return SIGNATURE_START_PATTERNS.some((pattern) => pattern.test(line.trim()));
+    return SIGNATURE_START_PATTERNS.some((pattern) => pattern.test(normalizeMarkerLine(line)));
   });
   const relevantLines = signatureIndex >= 0 ? lines.slice(0, signatureIndex) : lines;
 
