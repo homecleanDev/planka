@@ -14,8 +14,8 @@ const NameEdit = React.forwardRef(
 
     const open = useCallback(() => {
       setIsOpened(true);
-      setValue(defaultValue);
-    }, [defaultValue, setValue]);
+      setValue(defaultValue || '');
+    }, [defaultValue]);
 
     const close = useCallback(() => {
       setIsOpened(false);
@@ -23,7 +23,7 @@ const NameEdit = React.forwardRef(
     }, [setValue]);
 
     const submit = useCallback(() => {
-      const cleanValue = value.trim();
+      const cleanValue = (value || '').trim();
 
       if (cleanValue && cleanValue !== defaultValue) {
         onUpdate(cleanValue);
@@ -54,12 +54,21 @@ const NameEdit = React.forwardRef(
       submit();
     }, [submit]);
 
+    const handleWrapperEvent = useCallback((event) => {
+      event.stopPropagation();
+    }, []);
+
     if (!isOpened) {
       return children;
     }
 
     return (
-      <Form onSubmit={handleSubmit} className={styles.wrapper}>
+      <Form
+        onClick={handleWrapperEvent}
+        onMouseDown={handleWrapperEvent}
+        onSubmit={handleSubmit}
+        className={styles.wrapper}
+      >
         <RichTextEditor
           value={value}
           autofocus

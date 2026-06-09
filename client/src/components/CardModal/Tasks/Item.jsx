@@ -61,7 +61,7 @@ const Item = React.memo(
         {({ innerRef, draggableProps, dragHandleProps }, { isDragging }) => {
           const contentNode = (
             // eslint-disable-next-line react/jsx-props-no-spreading
-            <div {...draggableProps} {...dragHandleProps} ref={innerRef} className={styles.wrapper}>
+            <div {...draggableProps} ref={innerRef} className={styles.wrapper}>
               <span className={styles.checkboxWrapper}>
                 <Checkbox
                   checked={isCompleted}
@@ -77,7 +77,10 @@ const Item = React.memo(
                 boardMemberships={boardMemberships}
                 onImageUpload={onImageUpload}
               >
-                <div className={classNames(canEdit && styles.contentHoverable)}>
+                <div
+                  {...dragHandleProps} // eslint-disable-line react/jsx-props-no-spreading
+                  className={classNames(canEdit && styles.contentHoverable)}
+                >
                   {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events,
                                                jsx-a11y/no-static-element-interactions */}
                   <span
