@@ -16,6 +16,56 @@ const extractEmails = (...values) =>
 
 const getSenderEmail = (payload) => extractEmails(payload.fromAddress, payload.sender)[0] || null;
 
+const getZohoAccountEmails = (account) =>
+  extractEmails(
+    account.mailboxAddress,
+    account.primaryEmailAddress,
+    account.incomingUserName,
+    ...(Array.isArray(account.emailAddress) ? account.emailAddress : []),
+  );
+
+const selectZohoAccount = (zohoConnection, payload) => {
+  if (!_.isPlainObject(zohoConnection)) {
+    return null;
+  }
+
+  const accounts = Array.isArray(zohoConnection.accounts) ? zohoConnection.accounts : [];
+  const payloadZuid =
+    (_.isFinite(payload.zuid) || _.isString(payload.zuid)) && String(payload.zuid).trim()
+      ? String(payload.zuid).trim()
+      : null;
+
+  if (payloadZuid) {
+    const accountByZuid = accounts.find(
+      (account) =>
+        !_.isUndefined(account.zuid) &&
+        !_.isNull(account.zuid) &&
+        String(account.zuid) === payloadZuid,
+    );
+
+    if (accountByZuid) {
+      return accountByZuid;
+    }
+  }
+
+  const payloadEmails = extractEmails(payload.toAddress, payload.ccAddress, payload.recipients);
+  if (payloadEmails.length > 0) {
+    const accountByEmail = accounts.find((account) =>
+      getZohoAccountEmails(account).some((email) => payloadEmails.includes(email)),
+    );
+
+    if (accountByEmail) {
+      return accountByEmail;
+    }
+  }
+
+  return zohoConnection.accountId
+    ? {
+        accountId: zohoConnection.accountId,
+      }
+    : accounts[0] || null;
+};
+
 const buildLegacyWebhook = (project) => {
   if (!project.zohoWebhookToken || !project.zohoWebhookListId) {
     return null;
@@ -94,7 +144,7 @@ const getPathOrNull = async (deferred) => {
   try {
     return await deferred;
   } catch (error) {
-    if (error === 'pathNotFound' || error?.code === 'pathNotFound') {
+    if (error === 'pathNotFound' || (error && error.code === 'pathNotFound')) {
       return null;
     }
 
@@ -322,14 +372,37 @@ module.exports = {
     const projectZohoConnection = _.isPlainObject(project.zohoConnection)
       ? project.zohoConnection
       : null;
+    const selectedZohoAccount = selectZohoAccount(projectZohoConnection, payload);
 
-    let zohoAccountId = projectZohoConnection?.accountId || sails.config.custom.zohoMailAccountId;
+    const zohoAccountId =
+      (selectedZohoAccount && selectedZohoAccount.accountId) ||
+      (projectZohoConnection && projectZohoConnection.accountId) ||
+      sails.config.custom.zohoMailAccountId;
     let zohoAccessToken =
-      projectZohoConnection?.accessToken || sails.config.custom.zohoMailOAuthToken;
-    const zohoRefreshToken = projectZohoConnection?.refreshToken;
+      (projectZohoConnection && projectZohoConnection.accessToken) ||
+      sails.config.custom.zohoMailOAuthToken;
+    const zohoRefreshToken = projectZohoConnection && projectZohoConnection.refreshToken;
     const isZohoAccessTokenExpired =
-      projectZohoConnection?.accessTokenExpiresAt &&
+      projectZohoConnection &&
+      projectZohoConnection.accessTokenExpiresAt &&
       new Date(projectZohoConnection.accessTokenExpiresAt).getTime() <= Date.now() + 60 * 1000;
+
+    sails.log.info(
+      'PlankaZoho:attachment account-select',
+      JSON.stringify({
+        projectId: project.id,
+        payloadZuid:
+          (_.isFinite(payload.zuid) || _.isString(payload.zuid)) && String(payload.zuid).trim()
+            ? String(payload.zuid).trim()
+            : null,
+        accountId: zohoAccountId || null,
+        connectedAccountCount: Array.isArray(
+          projectZohoConnection && projectZohoConnection.accounts,
+        )
+          ? projectZohoConnection.accounts.length
+          : 0,
+      }),
+    );
 
     if ((!zohoAccessToken || isZohoAccessTokenExpired) && zohoRefreshToken) {
       const refreshedToken = await refreshZohoAccessToken(zohoRefreshToken);
@@ -354,7 +427,6 @@ module.exports = {
 
           if (updatedProject) {
             project.zohoConnection = nextZohoConnection;
-            zohoAccountId = nextZohoConnection.accountId || zohoAccountId;
           }
         }
       }

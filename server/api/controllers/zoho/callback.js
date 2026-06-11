@@ -9,6 +9,19 @@ const redirectWithStatus = (baseUrl, status, message) => {
   return target.toString();
 };
 
+const normalizeAccount = (account) => ({
+  accountId: String(account.accountId),
+  zuid: _.isUndefined(account.zuid) || _.isNull(account.zuid) ? null : String(account.zuid),
+  mailboxAddress: account.mailboxAddress || null,
+  primaryEmailAddress: account.primaryEmailAddress || null,
+  incomingUserName: account.incomingUserName || null,
+  emailAddress: Array.isArray(account.emailAddress)
+    ? account.emailAddress
+        .map((item) => item && item.mailId)
+        .filter((mailId) => _.isString(mailId) && mailId.trim())
+    : [],
+});
+
 module.exports = {
   inputs: {
     code: {
@@ -115,10 +128,10 @@ module.exports = {
     }
 
     const accountsBody = await accountsResponse.json();
-    const account =
-      Array.isArray(accountsBody.data) && accountsBody.data.length > 0
-        ? accountsBody.data[0]
-        : null;
+    const accounts = Array.isArray(accountsBody.data)
+      ? accountsBody.data.filter((item) => item && item.accountId).map(normalizeAccount)
+      : [];
+    const account = accounts[0] || null;
 
     if (!account || !account.accountId) {
       return this.res.redirect(redirectWithStatus(safeReturnUrl, 'error', 'account-id-missing'));
@@ -135,6 +148,7 @@ module.exports = {
           accessToken,
           refreshToken,
           accessTokenExpiresAt: expiresAt,
+          accounts,
           connectedByUserId: state.userId,
           connectedAt: new Date(now).toISOString(),
         },
