@@ -123,6 +123,18 @@ const saveMessageIds = async (projectId, cardId, messageIds) =>
     ),
   );
 
+const saveWebhookLog = async (token, payload) => {
+  try {
+    await WebhookLog.create({
+      source: 'zoho',
+      token,
+      payload,
+    });
+  } catch (error) {
+    sails.log.warn('Unable to save webhook log', error.message);
+  }
+};
+
 const getAttachmentPublicUrl = (fileData) =>
   `https://${process.env.AWS_BUCKET}.s3.${process.env.AWS_DEFAULT_REGION}.amazonaws.com/${fileData.url}`;
 
@@ -269,7 +281,10 @@ module.exports = {
   },
 
   async fn(inputs) {
-    const payload = _.isPlainObject(this.req.body) ? this.req.body : {};
+    const receivedPayload = _.isNil(this.req.body) ? {} : this.req.body;
+    const payload = _.isPlainObject(receivedPayload) ? receivedPayload : {};
+
+    await saveWebhookLog(inputs.token, receivedPayload);
 
     if (isZohoTestPayload(payload)) {
       return {
