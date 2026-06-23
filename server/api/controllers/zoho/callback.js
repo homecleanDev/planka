@@ -12,6 +12,7 @@ const redirectWithStatus = (baseUrl, status, message) => {
 const normalizeAccount = (account) => ({
   accountId: String(account.accountId),
   zuid: _.isUndefined(account.zuid) || _.isNull(account.zuid) ? null : String(account.zuid),
+  name: account.displayName || account.name || null,
   mailboxAddress: account.mailboxAddress || null,
   primaryEmailAddress: account.primaryEmailAddress || null,
   incomingUserName: account.incomingUserName || null,
@@ -21,6 +22,49 @@ const normalizeAccount = (account) => ({
         .filter((mailId) => _.isString(mailId) && mailId.trim())
     : [],
 });
+
+const getZohoConnectionItems = (zohoConnection) => {
+  if (!_.isPlainObject(zohoConnection)) {
+    return [];
+  }
+
+  if (Array.isArray(zohoConnection.connections)) {
+    return zohoConnection.connections.filter(_.isPlainObject);
+  }
+
+  return [zohoConnection];
+};
+
+const getZohoConnectionAccountIds = (connection) => {
+  const accountIds = [];
+
+  if (_.isString(connection.accountId) && connection.accountId) {
+    accountIds.push(connection.accountId);
+  }
+
+  if (Array.isArray(connection.accounts)) {
+    connection.accounts.forEach((account) => {
+      if (account && _.isString(account.accountId) && account.accountId) {
+        accountIds.push(account.accountId);
+      }
+    });
+  }
+
+  return [...new Set(accountIds)];
+};
+
+const buildZohoConnection = (connections) => {
+  const [primaryConnection] = connections;
+
+  if (!primaryConnection) {
+    return null;
+  }
+
+  return {
+    ...primaryConnection,
+    connections,
+  };
+};
 
 module.exports = {
   inputs: {
@@ -139,19 +183,32 @@ module.exports = {
 
     const now = Date.now();
     const expiresAt = expiresIn ? new Date(now + Number(expiresIn) * 1000).toISOString() : null;
+    const nextConnection = {
+      id: String(account.accountId),
+      accountId: String(account.accountId),
+      accessToken,
+      refreshToken,
+      accessTokenExpiresAt: expiresAt,
+      accounts,
+      connectedByUserId: state.userId,
+      connectedAt: new Date(now).toISOString(),
+    };
+    const nextAccountIds = getZohoConnectionAccountIds(nextConnection);
+    const existingConnections = getZohoConnectionItems(project.zohoConnection);
+    const connections = [
+      ...existingConnections.filter(
+        (connection) =>
+          !getZohoConnectionAccountIds(connection).some((accountId) =>
+            nextAccountIds.includes(accountId),
+          ),
+      ),
+      nextConnection,
+    ];
 
     await sails.helpers.projects.updateOne.with({
       record: project,
       values: {
-        zohoConnection: {
-          accountId: String(account.accountId),
-          accessToken,
-          refreshToken,
-          accessTokenExpiresAt: expiresAt,
-          accounts,
-          connectedByUserId: state.userId,
-          connectedAt: new Date(now).toISOString(),
-        },
+        zohoConnection: buildZohoConnection(connections),
       },
       request: this.req,
     });

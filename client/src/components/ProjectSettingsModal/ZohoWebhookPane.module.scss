@@ -21,3 +21,28 @@
 .webhookActions {
   margin-top: 12px;
 }
+
+.connectedAccounts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.connectedAccount {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.connectedAccountName {
+  font-weight: 600;
+}
+
+.connectedAccountMeta {
+  color: #6b6b6b;
+  font-size: 12px;
+  margin-top: 2px;
+}

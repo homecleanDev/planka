@@ -96,48 +96,54 @@ const zohoWebhooksValidator = (value) => {
   );
 };
 
+const zohoAccountValidator = (account) =>
+  _.isPlainObject(account) &&
+  _.isString(account.accountId) &&
+  (_.isUndefined(account.zuid) || _.isNull(account.zuid) || _.isString(account.zuid)) &&
+  (_.isUndefined(account.name) || _.isNull(account.name) || _.isString(account.name)) &&
+  (_.isUndefined(account.mailboxAddress) ||
+    _.isNull(account.mailboxAddress) ||
+    _.isString(account.mailboxAddress)) &&
+  (_.isUndefined(account.primaryEmailAddress) ||
+    _.isNull(account.primaryEmailAddress) ||
+    _.isString(account.primaryEmailAddress)) &&
+  (_.isUndefined(account.incomingUserName) ||
+    _.isNull(account.incomingUserName) ||
+    _.isString(account.incomingUserName)) &&
+  (_.isUndefined(account.emailAddress) ||
+    (_.isArray(account.emailAddress) && account.emailAddress.every((email) => _.isString(email))));
+
+const zohoConnectionItemValidator = (value) =>
+  _.isPlainObject(value) &&
+  (_.isUndefined(value.id) || _.isString(value.id)) &&
+  (_.isUndefined(value.accountId) || _.isString(value.accountId)) &&
+  (_.isUndefined(value.accessToken) || _.isString(value.accessToken)) &&
+  (_.isUndefined(value.refreshToken) || _.isString(value.refreshToken)) &&
+  (_.isUndefined(value.accessTokenExpiresAt) ||
+    _.isNull(value.accessTokenExpiresAt) ||
+    _.isString(value.accessTokenExpiresAt)) &&
+  (_.isUndefined(value.accounts) ||
+    (_.isArray(value.accounts) && value.accounts.every(zohoAccountValidator))) &&
+  (_.isUndefined(value.connectedByUserId) ||
+    _.isNull(value.connectedByUserId) ||
+    (_.isString(value.connectedByUserId) && /^[0-9]+$/.test(value.connectedByUserId))) &&
+  (_.isUndefined(value.connectedAt) ||
+    _.isNull(value.connectedAt) ||
+    _.isString(value.connectedAt));
+
 const zohoConnectionValidator = (value) => {
   if (_.isNull(value)) {
     return true;
   }
 
-  if (!_.isPlainObject(value)) {
+  if (!zohoConnectionItemValidator(value)) {
     return false;
   }
 
   return (
     (_.isUndefined(value.accountId) || _.isString(value.accountId)) &&
-    (_.isUndefined(value.accessToken) || _.isString(value.accessToken)) &&
-    (_.isUndefined(value.refreshToken) || _.isString(value.refreshToken)) &&
-    (_.isUndefined(value.accessTokenExpiresAt) ||
-      _.isNull(value.accessTokenExpiresAt) ||
-      _.isString(value.accessTokenExpiresAt)) &&
-    (_.isUndefined(value.accounts) ||
-      (_.isArray(value.accounts) &&
-        value.accounts.every(
-          (account) =>
-            _.isPlainObject(account) &&
-            _.isString(account.accountId) &&
-            (_.isUndefined(account.zuid) || _.isNull(account.zuid) || _.isString(account.zuid)) &&
-            (_.isUndefined(account.mailboxAddress) ||
-              _.isNull(account.mailboxAddress) ||
-              _.isString(account.mailboxAddress)) &&
-            (_.isUndefined(account.primaryEmailAddress) ||
-              _.isNull(account.primaryEmailAddress) ||
-              _.isString(account.primaryEmailAddress)) &&
-            (_.isUndefined(account.incomingUserName) ||
-              _.isNull(account.incomingUserName) ||
-              _.isString(account.incomingUserName)) &&
-            (_.isUndefined(account.emailAddress) ||
-              (_.isArray(account.emailAddress) &&
-                account.emailAddress.every((email) => _.isString(email)))),
-        ))) &&
-    (_.isUndefined(value.connectedByUserId) ||
-      _.isNull(value.connectedByUserId) ||
-      (_.isString(value.connectedByUserId) && /^[0-9]+$/.test(value.connectedByUserId))) &&
-    (_.isUndefined(value.connectedAt) ||
-      _.isNull(value.connectedAt) ||
-      _.isString(value.connectedAt))
+    (_.isUndefined(value.connections) ||
+      (_.isArray(value.connections) && value.connections.every(zohoConnectionItemValidator)))
   );
 };
 

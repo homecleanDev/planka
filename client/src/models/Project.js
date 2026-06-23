@@ -24,6 +24,9 @@ export default class extends BaseModel {
     zohoWebhooks: attr({
       getDefault: () => [],
     }),
+    zohoConnection: attr({
+      getDefault: () => null,
+    }),
     zohoWebhookToken: attr({
       getDefault: () => null,
     }),

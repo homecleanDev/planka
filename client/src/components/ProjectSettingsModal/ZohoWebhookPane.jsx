@@ -34,8 +34,59 @@ const buildWebhookUrl = (token) => {
   return `${window.location.origin}/hook/zoho/${token}`;
 };
 
+const getZohoConnectionItems = (zohoConnection) => {
+  if (!zohoConnection) {
+    return [];
+  }
+
+  if (Array.isArray(zohoConnection.connections)) {
+    return zohoConnection.connections.filter(Boolean);
+  }
+
+  return [zohoConnection];
+};
+
+const getZohoAccountName = (account) => {
+  if (!account) {
+    return 'Zoho account';
+  }
+
+  return (
+    account.name ||
+    account.mailboxAddress ||
+    account.primaryEmailAddress ||
+    account.incomingUserName ||
+    (Array.isArray(account.emailAddress) && account.emailAddress[0]) ||
+    account.accountId ||
+    'Zoho account'
+  );
+};
+
+const getZohoConnectedAccounts = (zohoConnection) =>
+  getZohoConnectionItems(zohoConnection).flatMap((connection, connectionIndex) => {
+    const accounts =
+      Array.isArray(connection.accounts) && connection.accounts.length > 0
+        ? connection.accounts
+        : [
+            {
+              accountId: connection.accountId,
+            },
+          ];
+
+    return accounts
+      .filter((account) => account && account.accountId)
+      .map((account) => ({
+        ...account,
+        connectionIndex,
+        connectionId: connection.id || connection.accountId || String(connectionIndex),
+        name: getZohoAccountName(account),
+      }));
+  });
+
 const ZohoWebhookPane = React.memo(
   ({ projectId, items, boards, users, currentUser, zohoConnection, onUpdate }) => {
+    const safeItems = useMemo(() => (Array.isArray(items) ? items : []), [items]);
+
     const listToBoardId = useMemo(
       () =>
         boards.reduce((result, board) => {
@@ -50,29 +101,35 @@ const ZohoWebhookPane = React.memo(
     );
 
     const normalizeItems = useCallback(
-      (nextItems) =>
-        nextItems.map((item) => normalizeWebhook(item, currentUser.id, listToBoardId)),
+      (nextItems) => nextItems.map((item) => normalizeWebhook(item, currentUser.id, listToBoardId)),
       [currentUser.id, listToBoardId],
     );
 
     const [webhooks, setWebhooks] = useState(() =>
-      normalizeItems(items.length > 0 ? items : [createWebhook(currentUser.id)]),
+      normalizeItems(safeItems.length > 0 ? safeItems : [createWebhook(currentUser.id)]),
     );
 
     useEffect(() => {
-      setWebhooks(normalizeItems(items.length > 0 ? items : [createWebhook(currentUser.id)]));
-    }, [items, currentUser.id, normalizeItems]);
+      setWebhooks(
+        normalizeItems(safeItems.length > 0 ? safeItems : [createWebhook(currentUser.id)]),
+      );
+    }, [safeItems, currentUser.id, normalizeItems]);
 
     const normalizedWebhooks = useMemo(() => normalizeItems(webhooks), [webhooks, normalizeItems]);
 
     const normalizedDefaults = useMemo(
-      () => normalizeItems(items.length > 0 ? items : [createWebhook(currentUser.id)]),
-      [items, currentUser.id, normalizeItems],
+      () => normalizeItems(safeItems.length > 0 ? safeItems : [createWebhook(currentUser.id)]),
+      [safeItems, currentUser.id, normalizeItems],
     );
 
     const persistedWebhookIds = useMemo(
-      () => new Set(items.map((item) => item.id).filter(Boolean)),
-      [items],
+      () => new Set(safeItems.map((item) => item.id).filter(Boolean)),
+      [safeItems],
+    );
+
+    const connectedZohoAccounts = useMemo(
+      () => getZohoConnectedAccounts(zohoConnection),
+      [zohoConnection],
     );
 
     const boardOptions = useMemo(
@@ -128,8 +185,8 @@ const ZohoWebhookPane = React.memo(
         }
 
         const nextZohoWebhooks = normalizedWebhooks
-          .filter((item, currentIndex) =>
-            currentIndex === index || persistedWebhookIds.has(item.id),
+          .filter(
+            (item, currentIndex) => currentIndex === index || persistedWebhookIds.has(item.id),
           )
           .filter((item) => item.token && item.listId)
           .map((item) => ({
@@ -155,13 +212,16 @@ const ZohoWebhookPane = React.memo(
         returnUrl: window.location.href,
       });
 
-      const response = await fetch(`${Config.SERVER_BASE_URL}/api/zoho/connect?${query.toString()}`, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          Accept: 'application/json',
+      const response = await fetch(
+        `${Config.SERVER_BASE_URL}/api/zoho/connect?${query.toString()}`,
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            Accept: 'application/json',
+          },
         },
-      });
+      );
 
       if (!response.ok) {
         return;
@@ -172,6 +232,30 @@ const ZohoWebhookPane = React.memo(
         window.location.href = body.item.authUrl;
       }
     }, [projectId]);
+
+    const handleRemoveZohoConnection = useCallback(
+      (connectionIndex) => {
+        const connections = getZohoConnectionItems(zohoConnection);
+        const nextConnections = connections.filter((_, index) => index !== connectionIndex);
+
+        if (nextConnections.length === 0) {
+          onUpdate({
+            zohoConnection: null,
+          });
+          return;
+        }
+
+        const primaryConnection = nextConnections[0];
+
+        onUpdate({
+          zohoConnection: {
+            ...primaryConnection,
+            connections: nextConnections,
+          },
+        });
+      },
+      [onUpdate, zohoConnection],
+    );
 
     const isWebhookSaveDisabled = useCallback(
       (index) => {
@@ -198,18 +282,39 @@ const ZohoWebhookPane = React.memo(
             <div className={styles.webhookActions}>
               <Button type="button" content="Connect Zoho" onClick={handleConnectZoho} />
             </div>
-            {zohoConnection?.accountId && (
-              <p>
-                Connected Zoho account ID: <code>{zohoConnection.accountId}</code>
-              </p>
+            {connectedZohoAccounts.length > 0 && (
+              <div className={styles.connectedAccounts}>
+                {connectedZohoAccounts.map((account) => (
+                  <div
+                    key={`${account.connectionIndex}:${account.accountId}`}
+                    className={styles.connectedAccount}
+                  >
+                    <div>
+                      <div className={styles.connectedAccountName}>{account.name}</div>
+                      <div className={styles.connectedAccountMeta}>
+                        Account ID: <code>{account.accountId}</code>
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      basic
+                      compact
+                      icon
+                      onClick={() => handleRemoveZohoConnection(account.connectionIndex)}
+                    >
+                      <Icon name="trash" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
             )}
             <p>
               Connect a Zoho account to enable attachment import and email thread matching for
               replies.
             </p>
             <p>
-              If not connected, email attachments will not be uploaded, and reply emails will
-              create new cards instead of comments on existing cards.
+              If not connected, email attachments will not be uploaded, and reply emails will create
+              new cards instead of comments on existing cards.
             </p>
           </Message>
 
@@ -240,71 +345,71 @@ const ZohoWebhookPane = React.memo(
                 </Button>
               </div>
 
-            <Form.Dropdown
-              fluid
-              selection
-              required
-              name="boardId"
-              label="Target tab"
-              options={boardOptions}
-              value={item.boardId || undefined}
-              placeholder="Select tab"
-              disabled={boardOptions.length === 0}
-              onChange={(event, data) => handleFieldChange(index, data)}
-            />
-
-            <Form.Dropdown
-              fluid
-              selection
-              required
-              name="listId"
-              label="Target list"
-              options={
-                boards
-                  .find((board) => board.id === item.boardId)
-                  ?.lists.map((list) => ({
-                    key: list.id,
-                    text: list.name,
-                    value: list.id,
-                  })) || []
-              }
-              value={item.listId || undefined}
-              placeholder="Select list"
-              disabled={!item.boardId}
-              onChange={(event, data) => handleFieldChange(index, data)}
-            />
-
-            <Form.Dropdown
-              fluid
-              multiple
-              selection
-              search
-              name="userIds"
-              label="Additional assignees"
-              options={userOptions}
-              value={item.userIds}
-              placeholder="Select users"
-              onChange={(event, data) => handleFieldChange(index, data)}
-            />
-
-            {persistedWebhookIds.has(item.id) && (
-              <Form.TextArea
-                label="Webhook URL"
-                value={buildWebhookUrl(item.token)}
-                rows={3}
-                readOnly
+              <Form.Dropdown
+                fluid
+                selection
+                required
+                name="boardId"
+                label="Target tab"
+                options={boardOptions}
+                value={item.boardId || undefined}
+                placeholder="Select tab"
+                disabled={boardOptions.length === 0}
+                onChange={(event, data) => handleFieldChange(index, data)}
               />
-            )}
 
-            <div className={styles.webhookActions}>
-              <Button
-                type="button"
-                positive
-                content="Save"
-                disabled={isWebhookSaveDisabled(index)}
-                onClick={() => handleSaveWebhook(index)}
+              <Form.Dropdown
+                fluid
+                selection
+                required
+                name="listId"
+                label="Target list"
+                options={
+                  boards
+                    .find((board) => board.id === item.boardId)
+                    ?.lists.map((list) => ({
+                      key: list.id,
+                      text: list.name,
+                      value: list.id,
+                    })) || []
+                }
+                value={item.listId || undefined}
+                placeholder="Select list"
+                disabled={!item.boardId}
+                onChange={(event, data) => handleFieldChange(index, data)}
               />
-            </div>
+
+              <Form.Dropdown
+                fluid
+                multiple
+                selection
+                search
+                name="userIds"
+                label="Additional assignees"
+                options={userOptions}
+                value={item.userIds}
+                placeholder="Select users"
+                onChange={(event, data) => handleFieldChange(index, data)}
+              />
+
+              {persistedWebhookIds.has(item.id) && (
+                <Form.TextArea
+                  label="Webhook URL"
+                  value={buildWebhookUrl(item.token)}
+                  rows={3}
+                  readOnly
+                />
+              )}
+
+              <div className={styles.webhookActions}>
+                <Button
+                  type="button"
+                  positive
+                  content="Save"
+                  disabled={isWebhookSaveDisabled(index)}
+                  onClick={() => handleSaveWebhook(index)}
+                />
+              </div>
             </Segment>
           ))}
 
@@ -354,7 +459,19 @@ ZohoWebhookPane.propTypes = {
     id: PropTypes.string.isRequired,
   }).isRequired,
   zohoConnection: PropTypes.shape({
+    connections: PropTypes.arrayOf(PropTypes.object), // eslint-disable-line react/forbid-prop-types
     accountId: PropTypes.string,
+    accounts: PropTypes.arrayOf(
+      PropTypes.shape({
+        accountId: PropTypes.string.isRequired,
+        zuid: PropTypes.string,
+        name: PropTypes.string,
+        mailboxAddress: PropTypes.string,
+        primaryEmailAddress: PropTypes.string,
+        incomingUserName: PropTypes.string,
+        emailAddress: PropTypes.arrayOf(PropTypes.string),
+      }),
+    ),
   }),
   onUpdate: PropTypes.func.isRequired,
 };

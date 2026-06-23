@@ -24,46 +24,143 @@ const getZohoAccountEmails = (account) =>
     ...(Array.isArray(account.emailAddress) ? account.emailAddress : []),
   );
 
-const selectZohoAccount = (zohoConnection, payload) => {
+const getZohoConnectionItems = (zohoConnection) => {
   if (!_.isPlainObject(zohoConnection)) {
-    return null;
+    return [];
   }
 
-  const accounts = Array.isArray(zohoConnection.accounts) ? zohoConnection.accounts : [];
+  if (Array.isArray(zohoConnection.connections)) {
+    return zohoConnection.connections.filter(_.isPlainObject);
+  }
+
+  return [zohoConnection];
+};
+
+const getZohoConnectionAccounts = (connection) => {
+  const accounts =
+    Array.isArray(connection.accounts) && connection.accounts.length > 0 ? connection.accounts : [];
+
+  if (
+    connection.accountId &&
+    !accounts.some((account) => account.accountId === connection.accountId)
+  ) {
+    return [
+      {
+        accountId: connection.accountId,
+      },
+      ...accounts,
+    ];
+  }
+
+  return accounts;
+};
+
+const getZohoAccountPriority = (account, payload) => {
   const payloadZuid =
     (_.isFinite(payload.zuid) || _.isString(payload.zuid)) && String(payload.zuid).trim()
       ? String(payload.zuid).trim()
       : null;
 
-  if (payloadZuid) {
-    const accountByZuid = accounts.find(
-      (account) =>
-        !_.isUndefined(account.zuid) &&
-        !_.isNull(account.zuid) &&
-        String(account.zuid) === payloadZuid,
-    );
-
-    if (accountByZuid) {
-      return accountByZuid;
-    }
+  if (
+    payloadZuid &&
+    !_.isUndefined(account.zuid) &&
+    !_.isNull(account.zuid) &&
+    String(account.zuid) === payloadZuid
+  ) {
+    return 0;
   }
 
   const payloadEmails = extractEmails(payload.toAddress, payload.ccAddress, payload.recipients);
-  if (payloadEmails.length > 0) {
-    const accountByEmail = accounts.find((account) =>
-      getZohoAccountEmails(account).some((email) => payloadEmails.includes(email)),
-    );
-
-    if (accountByEmail) {
-      return accountByEmail;
-    }
+  if (
+    payloadEmails.length > 0 &&
+    getZohoAccountEmails(account).some((email) => payloadEmails.includes(email))
+  ) {
+    return 1;
   }
 
-  return zohoConnection.accountId
-    ? {
-        accountId: zohoConnection.accountId,
+  return 2;
+};
+
+const buildZohoAccountContexts = (zohoConnection, payload) => {
+  const contexts = [];
+
+  getZohoConnectionItems(zohoConnection).forEach((connection, connectionIndex) => {
+    getZohoConnectionAccounts(connection).forEach((account) => {
+      if (!(account && account.accountId)) {
+        return;
       }
-    : accounts[0] || null;
+
+      contexts.push({
+        connection,
+        connectionIndex,
+        account,
+        accountId: account.accountId,
+        accessToken: connection.accessToken,
+        refreshToken: connection.refreshToken,
+        accessTokenExpiresAt: connection.accessTokenExpiresAt,
+        priority: getZohoAccountPriority(account, payload),
+      });
+    });
+  });
+
+  if (sails.config.custom.zohoMailAccountId && sails.config.custom.zohoMailOAuthToken) {
+    contexts.push({
+      connection: null,
+      connectionIndex: -1,
+      account: {
+        accountId: sails.config.custom.zohoMailAccountId,
+      },
+      accountId: sails.config.custom.zohoMailAccountId,
+      accessToken: sails.config.custom.zohoMailOAuthToken,
+      refreshToken: null,
+      accessTokenExpiresAt: null,
+      priority: 3,
+    });
+  }
+
+  return contexts
+    .filter(
+      (context, index, arr) =>
+        arr.findIndex(
+          (item) =>
+            item.accountId === context.accountId &&
+            item.accessToken === context.accessToken &&
+            item.refreshToken === context.refreshToken,
+        ) === index,
+    )
+    .sort((a, b) => a.priority - b.priority);
+};
+
+const buildZohoConnectionFromItems = (connections) => {
+  const [primaryConnection] = connections;
+
+  if (!primaryConnection) {
+    return null;
+  }
+
+  return {
+    ...primaryConnection,
+    connections,
+  };
+};
+
+const updateZohoConnectionItem = (zohoConnection, connectionIndex, nextConnection) => {
+  const connections = getZohoConnectionItems(zohoConnection);
+
+  if (connections.length === 0 || connectionIndex < 0) {
+    return zohoConnection;
+  }
+
+  const nextConnections = connections.map((connection, index) =>
+    index === connectionIndex ? nextConnection : connection,
+  );
+
+  return Array.isArray(zohoConnection.connections)
+    ? {
+        ...zohoConnection,
+        connections: nextConnections,
+      }
+    : buildZohoConnectionFromItems(nextConnections);
 };
 
 const buildLegacyWebhook = (project) => {
@@ -169,18 +266,18 @@ const importZohoAttachments = async ({
   card,
   creatorUser,
   payload,
-  zohoAccountId,
-  zohoAccessToken,
+  zohoContexts,
   folderId,
   messageId,
   request,
 }) => {
-  if (!(zohoAccountId && zohoAccessToken && folderId && messageId)) {
+  const contexts = Array.isArray(zohoContexts) ? zohoContexts : [];
+
+  if (!(contexts.length > 0 && folderId && messageId)) {
     sails.log.info(
       'PlankaZoho:attachment import-skipped',
       JSON.stringify({
-        hasZohoAccountId: !!zohoAccountId,
-        hasZohoAccessToken: !!zohoAccessToken,
+        zohoContextCount: contexts.length,
         hasFolderId: !!folderId,
         hasMessageId: !!messageId,
       }),
@@ -200,17 +297,77 @@ const importZohoAttachments = async ({
       folderId,
       messageId,
       hasAttachment: payload.hasAttachment,
+      zohoContextCount: contexts.length,
     }),
   );
 
-  const uploadedAttachments = await sails.helpers.utils.fetchZohoMessageAttachments.with({
-    baseUrl: sails.config.custom.zohoMailApiBaseUrl,
-    accountId: zohoAccountId,
-    oAuthToken: zohoAccessToken,
-    folderId,
-    messageId,
-    payload,
-  });
+  const fetchAttachmentsFromContext = async (index = 0) => {
+    const context = contexts[index];
+
+    if (!context) {
+      return {
+        uploadedAttachments: [],
+        successfulContext: null,
+      };
+    }
+
+    if (!(context.accountId && context.accessToken)) {
+      sails.log.info(
+        'PlankaZoho:attachment account-skipped',
+        JSON.stringify({
+          accountId: context.accountId || null,
+          hasAccessToken: !!context.accessToken,
+        }),
+      );
+
+      return fetchAttachmentsFromContext(index + 1);
+    }
+
+    sails.log.info(
+      'PlankaZoho:attachment account-attempt',
+      JSON.stringify({
+        accountId: context.accountId,
+        priority: context.priority,
+      }),
+    );
+
+    try {
+      const uploadedAttachments = await sails.helpers.utils.fetchZohoMessageAttachments.with({
+        baseUrl: sails.config.custom.zohoMailApiBaseUrl,
+        accountId: context.accountId,
+        oAuthToken: context.accessToken,
+        folderId,
+        messageId,
+        payload,
+      });
+
+      if (uploadedAttachments.length > 0) {
+        return {
+          uploadedAttachments,
+          successfulContext: context,
+        };
+      }
+
+      sails.log.info(
+        'PlankaZoho:attachment account-empty',
+        JSON.stringify({
+          accountId: context.accountId,
+        }),
+      );
+    } catch (error) {
+      sails.log.warn(
+        'PlankaZoho:attachment account-error',
+        JSON.stringify({
+          accountId: context.accountId,
+          error: error.message,
+        }),
+      );
+    }
+
+    return fetchAttachmentsFromContext(index + 1);
+  };
+
+  const { uploadedAttachments, successfulContext } = await fetchAttachmentsFromContext();
 
   await Promise.all(
     uploadedAttachments.map((fileData) =>
@@ -231,6 +388,7 @@ const importZohoAttachments = async ({
       projectId: project.id,
       cardId: card.id,
       count: uploadedAttachments.length,
+      accountId: successfulContext ? successfulContext.accountId : null,
     }),
   );
 
@@ -387,20 +545,7 @@ module.exports = {
     const projectZohoConnection = _.isPlainObject(project.zohoConnection)
       ? project.zohoConnection
       : null;
-    const selectedZohoAccount = selectZohoAccount(projectZohoConnection, payload);
-
-    const zohoAccountId =
-      (selectedZohoAccount && selectedZohoAccount.accountId) ||
-      (projectZohoConnection && projectZohoConnection.accountId) ||
-      sails.config.custom.zohoMailAccountId;
-    let zohoAccessToken =
-      (projectZohoConnection && projectZohoConnection.accessToken) ||
-      sails.config.custom.zohoMailOAuthToken;
-    const zohoRefreshToken = projectZohoConnection && projectZohoConnection.refreshToken;
-    const isZohoAccessTokenExpired =
-      projectZohoConnection &&
-      projectZohoConnection.accessTokenExpiresAt &&
-      new Date(projectZohoConnection.accessTokenExpiresAt).getTime() <= Date.now() + 60 * 1000;
+    let zohoContexts = buildZohoAccountContexts(projectZohoConnection, payload);
 
     sails.log.info(
       'PlankaZoho:attachment account-select',
@@ -410,27 +555,44 @@ module.exports = {
           (_.isFinite(payload.zuid) || _.isString(payload.zuid)) && String(payload.zuid).trim()
             ? String(payload.zuid).trim()
             : null,
-        accountId: zohoAccountId || null,
-        connectedAccountCount: Array.isArray(
-          projectZohoConnection && projectZohoConnection.accounts,
-        )
-          ? projectZohoConnection.accounts.length
-          : 0,
+        accountIds: zohoContexts.map((context) => context.accountId),
+        connectedAccountCount: zohoContexts.filter((context) => context.connection).length,
       }),
     );
 
-    if ((!zohoAccessToken || isZohoAccessTokenExpired) && zohoRefreshToken) {
-      const refreshedToken = await refreshZohoAccessToken(zohoRefreshToken);
+    const refreshZohoContext = async (index = 0) => {
+      const context = zohoContexts[index];
+
+      if (!context) {
+        return;
+      }
+
+      const isZohoAccessTokenExpired =
+        context.accessTokenExpiresAt &&
+        new Date(context.accessTokenExpiresAt).getTime() <= Date.now() + 60 * 1000;
+
+      if ((context.accessToken && !isZohoAccessTokenExpired) || !context.refreshToken) {
+        await refreshZohoContext(index + 1);
+        return;
+      }
+
+      const refreshedToken = await refreshZohoAccessToken(context.refreshToken);
 
       if (refreshedToken) {
-        zohoAccessToken = refreshedToken.accessToken;
+        context.accessToken = refreshedToken.accessToken;
+        context.accessTokenExpiresAt = refreshedToken.expiresAt;
 
-        if (projectZohoConnection) {
-          const nextZohoConnection = {
-            ...projectZohoConnection,
+        if (projectZohoConnection && context.connection) {
+          const nextConnection = {
+            ...context.connection,
             accessToken: refreshedToken.accessToken,
             accessTokenExpiresAt: refreshedToken.expiresAt,
           };
+          const nextZohoConnection = updateZohoConnectionItem(
+            project.zohoConnection,
+            context.connectionIndex,
+            nextConnection,
+          );
 
           const updatedProject = await sails.helpers.projects.updateOne.with({
             record: project,
@@ -442,25 +604,47 @@ module.exports = {
 
           if (updatedProject) {
             project.zohoConnection = nextZohoConnection;
+            context.connection = nextConnection;
           }
         }
       }
-    }
 
-    let headerContent = null;
-    if (zohoAccountId && zohoAccessToken && folderId && messageId) {
+      await refreshZohoContext(index + 1);
+    };
+
+    await refreshZohoContext();
+
+    zohoContexts = zohoContexts.filter((context) => context.accountId && context.accessToken);
+
+    const fetchHeaderContent = async (index = 0) => {
+      const context = zohoContexts[index];
+
+      if (!context || !(folderId && messageId)) {
+        return null;
+      }
+
       try {
-        headerContent = await sails.helpers.utils.fetchZohoMessageHeaders.with({
+        return await sails.helpers.utils.fetchZohoMessageHeaders.with({
           baseUrl: sails.config.custom.zohoMailApiBaseUrl,
-          accountId: zohoAccountId,
-          oAuthToken: zohoAccessToken,
+          accountId: context.accountId,
+          oAuthToken: context.accessToken,
           folderId,
           messageId,
         });
       } catch (error) {
-        sails.log.warn('Unable to fetch Zoho message headers', error.message);
+        sails.log.warn(
+          'Unable to fetch Zoho message headers',
+          JSON.stringify({
+            accountId: context.accountId,
+            error: error.message,
+          }),
+        );
       }
-    }
+
+      return fetchHeaderContent(index + 1);
+    };
+
+    const headerContent = await fetchHeaderContent();
 
     const { currentMessageIds, parentMessageIds, isReply } = getThreadMessageIds(
       payload,
@@ -505,8 +689,7 @@ module.exports = {
               card,
               creatorUser,
               payload,
-              zohoAccountId,
-              zohoAccessToken,
+              zohoContexts,
               folderId,
               messageId,
               request: this.req,
@@ -609,8 +792,7 @@ module.exports = {
         card,
         creatorUser,
         payload,
-        zohoAccountId,
-        zohoAccessToken,
+        zohoContexts,
         folderId,
         messageId,
         request: this.req,
