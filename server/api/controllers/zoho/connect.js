@@ -36,13 +36,24 @@ module.exports = {
       throw Errors.PROJECT_NOT_FOUND;
     }
 
-    const isProjectManager = await sails.helpers.users.isProjectManager(currentUser.id, project.id);
-    if (!isProjectManager) {
-      throw Errors.PROJECT_NOT_FOUND; // Forbidden
-    }
-
     if (!currentUser.isAdmin) {
-      throw Errors.NOT_ENOUGH_RIGHTS;
+      const isProjectManager = await sails.helpers.users.isProjectManager(
+        currentUser.id,
+        project.id,
+      );
+
+      if (!isProjectManager) {
+        const projectBoards = await Board.find({ projectId: project.id });
+        const boardIds = projectBoards.map((b) => b.id);
+        const membership =
+          boardIds.length > 0
+            ? await BoardMembership.findOne({ boardId: boardIds, userId: currentUser.id })
+            : null;
+
+        if (!membership) {
+          throw Errors.PROJECT_NOT_FOUND;
+        }
+      }
     }
 
     const state = sails.helpers.utils.createToken({
