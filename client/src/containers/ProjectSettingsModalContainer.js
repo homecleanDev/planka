@@ -8,6 +8,7 @@ import ProjectSettingsModal from '../components/ProjectSettingsModal';
 const mapStateToProps = (state) => {
   const users = selectors.selectUsers(state);
   const currentUser = selectors.selectCurrentUser(state);
+  const isCurrentUserManager = selectors.selectIsCurrentUserManagerForCurrentProject(state);
   const boardMemberships = selectors.selectMembershipsForCurrentBoard(state) || [];
   const currentProject = selectors.selectCurrentProject(state);
   const projectsToLists = selectors.selectProjectsToListsForCurrentUser(state) || [];
@@ -33,6 +34,7 @@ const mapStateToProps = (state) => {
 
   return {
     projectId: currentProject?.id,
+    canEditProject: isCurrentUserManager,
     name,
     memberCardDeletionEnabled,
     background,

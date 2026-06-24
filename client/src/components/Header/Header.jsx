@@ -32,10 +32,8 @@ const Header = React.memo(
     onLogout,
   }) => {
     const handleProjectSettingsClick = useCallback(() => {
-      if (canEditProject) {
-        onProjectSettingsClick();
-      }
-    }, [canEditProject, onProjectSettingsClick]);
+      onProjectSettingsClick();
+    }, [onProjectSettingsClick]);
 
     const NotificationsPopup = usePopup(NotificationsStep, POPUP_PROPS);
     const UserPopup = usePopup(UserStep, POPUP_PROPS);
@@ -64,14 +62,12 @@ const Header = React.memo(
               </Menu.Item>
               <Menu.Item className={classNames(styles.item, styles.title)}>
                 {project.name}
-                {canEditProject && (
-                  <Button
-                    className={classNames(styles.editButton, styles.target)}
-                    onClick={handleProjectSettingsClick}
-                  >
-                    <Icon fitted name="pencil" size="small" />
-                  </Button>
-                )}
+                <Button
+                  className={classNames(styles.editButton, styles.target)}
+                  onClick={handleProjectSettingsClick}
+                >
+                  <Icon fitted name={canEditProject ? 'pencil' : 'cog'} size="small" />
+                </Button>
               </Menu.Item>
             </Menu.Menu>
           )}

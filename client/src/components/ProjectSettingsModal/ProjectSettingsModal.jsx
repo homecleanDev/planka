@@ -13,6 +13,7 @@ const ProjectSettingsModal = React.memo(
   ({
     name,
     projectId,
+    canEditProject,
     memberCardDeletionEnabled,
     background,
     backgroundImage,
@@ -49,58 +50,60 @@ const ProjectSettingsModal = React.memo(
       });
     }, [onUpdate]);
 
-    const panes = [
-      {
-        menuItem: t('common.general', {
-          context: 'title',
-        }),
-        render: () => (
-          <GeneralPane
-            name={name}
-            onUpdate={onUpdate}
-            onDelete={onDelete}
-            memberCardDeletionEnabled={memberCardDeletionEnabled}
-          />
-        ),
-      },
-      {
-        menuItem: t('common.card', {
-          context: 'title',
-        }),
-        render: () => <CardPane defaultFields={cardFields} onUpdate={onUpdate} />,
-      },
-      {
-        menuItem: t('common.managers', {
-          context: 'title',
-        }),
-        render: () => (
-          <ManagersPane
-            items={managers}
-            allUsers={allUsers}
-            onCreate={onManagerCreate}
-            onDelete={onManagerDelete}
-          />
-        ),
-      },
-      {
-        menuItem: t('common.background', {
-          context: 'title',
-        }),
-        render: () => (
-          <BackgroundPane
-            item={background}
-            imageCoverUrl={backgroundImage && backgroundImage.coverUrl}
-            isImageUpdating={isBackgroundImageUpdating}
-            onUpdate={handleBackgroundUpdate}
-            onImageUpdate={onBackgroundImageUpdate}
-            onImageDelete={handleBackgroundImageDelete}
-          />
-        ),
-      },
-    ];
+    const panes = canEditProject
+      ? [
+          {
+            menuItem: t('common.general', {
+              context: 'title',
+            }),
+            render: () => (
+              <GeneralPane
+                name={name}
+                onUpdate={onUpdate}
+                onDelete={onDelete}
+                memberCardDeletionEnabled={memberCardDeletionEnabled}
+              />
+            ),
+          },
+          {
+            menuItem: t('common.card', {
+              context: 'title',
+            }),
+            render: () => <CardPane defaultFields={cardFields} onUpdate={onUpdate} />,
+          },
+          {
+            menuItem: t('common.managers', {
+              context: 'title',
+            }),
+            render: () => (
+              <ManagersPane
+                items={managers}
+                allUsers={allUsers}
+                onCreate={onManagerCreate}
+                onDelete={onManagerDelete}
+              />
+            ),
+          },
+          {
+            menuItem: t('common.background', {
+              context: 'title',
+            }),
+            render: () => (
+              <BackgroundPane
+                item={background}
+                imageCoverUrl={backgroundImage && backgroundImage.coverUrl}
+                isImageUpdating={isBackgroundImageUpdating}
+                onUpdate={handleBackgroundUpdate}
+                onImageUpdate={onBackgroundImageUpdate}
+                onImageDelete={handleBackgroundImageDelete}
+              />
+            ),
+          },
+        ]
+      : [];
 
-    if (currentUser?.isAdmin) {
-      panes.splice(3, 0, {
+    if (!canEditProject || currentUser?.isAdmin) {
+      panes.splice(canEditProject ? 3 : 0, 0, {
         menuItem: 'Zoho Webhook',
         render: () => (
           <ZohoWebhookPane
@@ -135,6 +138,7 @@ const ProjectSettingsModal = React.memo(
 ProjectSettingsModal.propTypes = {
   name: PropTypes.string.isRequired,
   projectId: PropTypes.string.isRequired,
+  canEditProject: PropTypes.bool.isRequired,
   memberCardDeletionEnabled: PropTypes.bool.isRequired,
   /* eslint-disable react/forbid-prop-types */
   background: PropTypes.object,
