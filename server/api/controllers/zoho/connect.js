@@ -7,6 +7,38 @@ const Errors = {
   },
 };
 
+const canAccessProject = async (user, project) => {
+  if (!user) {
+    return false;
+  }
+
+  if (user.isAdmin) {
+    return true;
+  }
+
+  const isProjectManager = await sails.helpers.users.isProjectManager(user.id, project.id);
+
+  if (isProjectManager) {
+    return true;
+  }
+
+  const projectBoards = await Board.find({ projectId: project.id });
+  const boardIds = projectBoards.map((board) => board.id);
+
+  if (boardIds.length === 0) {
+    return false;
+  }
+
+  const membership = await BoardMembership.findOne({
+    boardId: {
+      in: boardIds,
+    },
+    userId: user.id,
+  });
+
+  return !!membership;
+};
+
 module.exports = {
   inputs: {
     projectId: {
@@ -36,24 +68,8 @@ module.exports = {
       throw Errors.PROJECT_NOT_FOUND;
     }
 
-    if (!currentUser.isAdmin) {
-      const isProjectManager = await sails.helpers.users.isProjectManager(
-        currentUser.id,
-        project.id,
-      );
-
-      if (!isProjectManager) {
-        const projectBoards = await Board.find({ projectId: project.id });
-        const boardIds = projectBoards.map((b) => b.id);
-        const membership =
-          boardIds.length > 0
-            ? await BoardMembership.findOne({ boardId: boardIds, userId: currentUser.id })
-            : null;
-
-        if (!membership) {
-          throw Errors.PROJECT_NOT_FOUND;
-        }
-      }
+    if (!(await canAccessProject(currentUser, project))) {
+      throw Errors.NOT_ENOUGH_RIGHTS;
     }
 
     const state = sails.helpers.utils.createToken({

@@ -66,6 +66,38 @@ const buildZohoConnection = (connections) => {
   };
 };
 
+const canAccessProject = async (user, project) => {
+  if (!user) {
+    return false;
+  }
+
+  if (user.isAdmin) {
+    return true;
+  }
+
+  const isProjectManager = await sails.helpers.users.isProjectManager(user.id, project.id);
+
+  if (isProjectManager) {
+    return true;
+  }
+
+  const projectBoards = await Board.find({ projectId: project.id });
+  const boardIds = projectBoards.map((board) => board.id);
+
+  if (boardIds.length === 0) {
+    return false;
+  }
+
+  const membership = await BoardMembership.findOne({
+    boardId: {
+      in: boardIds,
+    },
+    userId: user.id,
+  });
+
+  return !!membership;
+};
+
 module.exports = {
   inputs: {
     code: {
@@ -115,11 +147,7 @@ module.exports = {
     const user = await sails.helpers.users.getOne({
       id: state.userId,
     });
-    const isProjectManager = user
-      ? await sails.helpers.users.isProjectManager(user.id, project.id)
-      : false;
-
-    if (!user || !user.isAdmin || !isProjectManager) {
+    if (!(await canAccessProject(user, project))) {
       return this.res.redirect(redirectWithStatus(safeReturnUrl, 'error', 'not-enough-rights'));
     }
 
