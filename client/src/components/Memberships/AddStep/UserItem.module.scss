@@ -21,6 +21,10 @@
     }
   }
 
+  .menuItemHighlighted {
+    background: rgba(0, 0, 0, 0.05);
+  }
+
   .menuItemText {
     display: block;
     flex: 1 1 auto;

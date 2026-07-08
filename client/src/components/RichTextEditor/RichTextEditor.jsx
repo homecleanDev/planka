@@ -1,9 +1,9 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import SimpleMDE from 'react-simplemde-editor';
 
 import RichTextImageModal from '../RichTextImageModal';
-import Tag from '../Tag/Tag';
+import Tag, { filterTagUsers } from '../Tag/Tag';
 import formatMarkdownImageUrl from '../../utils/format-markdown-image-url';
 
 import styles from './RichTextEditor.module.scss';
@@ -23,6 +23,7 @@ const RichTextEditor = React.memo(
   }) => {
     const [isImageModalOpened, setIsImageModalOpened] = useState(false);
     const [mentionState, setMentionState] = useState(null);
+    const [activeMentionIndex, setActiveMentionIndex] = useState(0);
 
     const activeEditor = useRef(null);
     const codeMirror = useRef(null);
@@ -31,7 +32,20 @@ const RichTextEditor = React.memo(
 
     const clearMentionState = useCallback(() => {
       setMentionState(null);
+      setActiveMentionIndex(0);
     }, []);
+
+    const mentionUsers = useMemo(
+      () =>
+        mentionState && boardMemberships
+          ? filterTagUsers(boardMemberships, mentionState.search)
+          : [],
+      [boardMemberships, mentionState],
+    );
+
+    useEffect(() => {
+      setActiveMentionIndex(0);
+    }, [mentionState?.search]);
 
     const syncMentionState = useCallback(
       (editor) => {
@@ -109,8 +123,40 @@ const RichTextEditor = React.memo(
       [mentionState, clearMentionState],
     );
 
+    const handleKeyDown = useCallback(
+      (event) => {
+        if (mentionState && mentionUsers.length > 0) {
+          switch (event.key) {
+            case 'ArrowDown':
+              event.preventDefault();
+              setActiveMentionIndex((index) => (index + 1) % mentionUsers.length);
+              return;
+            case 'ArrowUp':
+              event.preventDefault();
+              setActiveMentionIndex(
+                (index) => (index - 1 + mentionUsers.length) % mentionUsers.length,
+              );
+              return;
+            case 'Enter':
+              event.preventDefault();
+              handleMentionSelect(mentionUsers[activeMentionIndex % mentionUsers.length].user);
+              return;
+            default:
+          }
+        }
+
+        if (onKeyDown) {
+          onKeyDown(event);
+        }
+      },
+      [activeMentionIndex, handleMentionSelect, mentionState, mentionUsers, onKeyDown],
+    );
+
     const events = useMemo(
       () => ({
+        keydown: (editor, event) => {
+          handleKeyDown(event);
+        },
         cursorActivity: (editor) => {
           syncMentionState(editor);
         },
@@ -137,7 +183,7 @@ const RichTextEditor = React.memo(
           }, 150);
         },
       }),
-      [clearMentionState, syncMentionState],
+      [clearMentionState, handleKeyDown, syncMentionState],
     );
 
     const mergedOptions = useMemo(
@@ -184,7 +230,6 @@ const RichTextEditor = React.memo(
           events={events}
           placeholder={placeholder}
           className={className}
-          onKeyDown={onKeyDown}
           onChange={onChange}
           getCodemirrorInstance={handleCodeMirrorInstance}
         />
@@ -199,6 +244,7 @@ const RichTextEditor = React.memo(
             <Tag
               search={mentionState.search}
               boardMemberships={boardMemberships}
+              activeIndex={activeMentionIndex}
               handleUserSelect={handleMentionSelect}
             />
           </div>
