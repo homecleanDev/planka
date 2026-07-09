@@ -61,6 +61,40 @@ export default class extends BaseModel {
     labels: many('Label', 'cards'),
   };
 
+  static syncIncludedRelations(Card, cards, cardMemberships, cardLabels) {
+    if (cards && cardMemberships) {
+      cards.forEach(({ id }) => {
+        const cardModel = Card.withId(id);
+
+        if (cardModel) {
+          cardModel.users.clear();
+        }
+      });
+
+      cardMemberships.forEach(({ cardId, userId }) => {
+        try {
+          Card.withId(cardId).users.add(userId);
+        } catch {} // eslint-disable-line no-empty
+      });
+    }
+
+    if (cards && cardLabels) {
+      cards.forEach(({ id }) => {
+        const cardModel = Card.withId(id);
+
+        if (cardModel) {
+          cardModel.labels.clear();
+        }
+      });
+
+      cardLabels.forEach(({ cardId, labelId }) => {
+        try {
+          Card.withId(cardId).labels.add(labelId);
+        } catch {} // eslint-disable-line no-empty
+      });
+    }
+  }
+
   static reducer({ type, payload }, Card) {
     switch (type) {
       case ActionTypes.LOCATION_CHANGE_HANDLE:
@@ -73,21 +107,12 @@ export default class extends BaseModel {
           });
         }
 
-        if (payload.cardMemberships) {
-          payload.cardMemberships.forEach(({ cardId, userId }) => {
-            try {
-              Card.withId(cardId).users.add(userId);
-            } catch {} // eslint-disable-line no-empty
-          });
-        }
-
-        if (payload.cardLabels) {
-          payload.cardLabels.forEach(({ cardId, labelId }) => {
-            try {
-              Card.withId(cardId).labels.add(labelId);
-            } catch {} // eslint-disable-line no-empty
-          });
-        }
+        this.syncIncludedRelations(
+          Card,
+          payload.cards,
+          payload.cardMemberships,
+          payload.cardLabels,
+        );
 
         break;
       case ActionTypes.SOCKET_RECONNECT_HANDLE:
@@ -154,17 +179,12 @@ export default class extends BaseModel {
           Card.upsert(card);
         });
 
-        payload.cardMemberships.forEach(({ cardId, userId }) => {
-          try {
-            Card.withId(cardId).users.add(userId);
-          } catch {} // eslint-disable-line no-empty
-        });
-
-        payload.cardLabels.forEach(({ cardId, labelId }) => {
-          try {
-            Card.withId(cardId).labels.add(labelId);
-          } catch {} // eslint-disable-line no-empty
-        });
+        this.syncIncludedRelations(
+          Card,
+          payload.cards,
+          payload.cardMemberships,
+          payload.cardLabels,
+        );
 
         break;
       case ActionTypes.LABEL_TO_CARD_ADD:

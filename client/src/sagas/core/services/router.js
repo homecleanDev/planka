@@ -114,7 +114,7 @@ export function* handleLocationChange() {
       let currentCardTasks;
       let currentCardAttachments;
 
-      if (!currentBoard && pathsMatch.pattern.path === Paths.CARDS) {
+      if (pathsMatch.pattern.path === Paths.CARDS) {
         try {
           ({
             item: currentCard,
@@ -126,10 +126,12 @@ export function* handleLocationChange() {
             },
           } = yield call(request, api.getCard, pathsMatch.params.id));
 
-          currentBoard = {
-            id: currentCard.boardId,
-            isFetching: null,
-          };
+          if (!currentBoard) {
+            currentBoard = {
+              id: currentCard.boardId,
+              isFetching: null,
+            };
+          }
         } catch (error) {} // eslint-disable-line no-empty
       }
 
