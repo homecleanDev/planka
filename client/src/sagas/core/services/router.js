@@ -176,6 +176,21 @@ export function* handleLocationChange() {
                 isRead: true,
               },
             ));
+
+            const {
+              items: notificationActivities,
+              included: { users: notificationActivityUsers },
+            } = yield call(request, api.getActivities, pathsMatch.params.id, {
+              withDetails: true,
+            });
+
+            yield put(
+              actions.toggleActivitiesDetails.success(
+                pathsMatch.params.id,
+                notificationActivities,
+                notificationActivityUsers,
+              ),
+            );
           } catch (error) {} // eslint-disable-line no-empty
         }
       }
