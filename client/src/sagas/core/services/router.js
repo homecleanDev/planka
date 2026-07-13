@@ -154,14 +154,15 @@ export function* handleLocationChange() {
               attachments,
             },
           } = yield call(request, api.getBoard, currentBoard.id, true));
-
-          cards = mergeRecords(cards, currentCard ? [currentCard] : []);
-          cardMemberships = mergeCardMemberships(cardMemberships, currentCardMemberships);
-          cardLabels = mergeCardLabels(cardLabels, currentCardLabels);
-          tasks = mergeRecords(tasks, currentCardTasks);
-          attachments = mergeRecords(attachments, currentCardAttachments);
         } catch (error) {} // eslint-disable-line no-empty
       }
+
+      cards = mergeRecords(cards, currentCard ? [currentCard] : []);
+
+      cardMemberships = mergeCardMemberships(cardMemberships, currentCardMemberships);
+      cardLabels = mergeCardLabels(cardLabels, currentCardLabels);
+      tasks = mergeRecords(tasks, currentCardTasks);
+      attachments = mergeRecords(attachments, currentCardAttachments);
 
       if (pathsMatch.pattern.path === Paths.CARDS) {
         const notificationIds = yield select(selectors.selectNotificationIdsForCurrentCard);

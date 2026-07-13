@@ -35,12 +35,20 @@ module.exports = {
     const action = await Action.findOne(notification.actionId);
     const user = await sails.helpers.users.getOne(action.userId, true);
     const card = await Card.findOne(notification.cardId);
+    const cardMemberships = await sails.helpers.cards.getCardMemberships(card.id);
+    const cardLabels = await sails.helpers.cards.getCardLabels(card.id);
+    const tasks = await sails.helpers.cards.getTasks(card.id);
+    const attachments = await sails.helpers.cards.getAttachments(card.id);
 
     return {
       item: notification,
       included: {
         users: [user],
         cards: [card],
+        cardMemberships,
+        cardLabels,
+        tasks,
+        attachments,
         actions: [action],
       },
     };

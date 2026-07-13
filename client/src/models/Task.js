@@ -48,6 +48,7 @@ export default class extends BaseModel {
       case ActionTypes.LIST_CARDS_FETCH__SUCCESS:
       case ActionTypes.CARD_CREATE_HANDLE:
       case ActionTypes.CARD_DUPLICATE__SUCCESS:
+      case ActionTypes.NOTIFICATION_CREATE_HANDLE:
         payload.tasks.forEach((task) => {
           Task.upsert(task);
         });

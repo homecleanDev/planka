@@ -216,6 +216,13 @@ export default class extends BaseModel {
           Card.upsert(card);
         });
 
+        this.syncIncludedRelations(
+          Card,
+          payload.cards,
+          payload.cardMemberships,
+          payload.cardLabels,
+        );
+
         break;
       case ActionTypes.CARD_CREATE:
       case ActionTypes.CARD_UPDATE__SUCCESS:

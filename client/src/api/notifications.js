@@ -4,6 +4,7 @@ import socket from './socket';
 import { transformUser } from './users';
 import { transformCard } from './cards';
 import { transformActivity } from './activities';
+import { transformAttachment } from './attachments';
 
 /* Transformers */
 
@@ -22,6 +23,7 @@ const getNotifications = (headers) =>
       ...omit(body.included, 'actions'),
       users: body.included.users.map(transformUser),
       cards: body.included.cards.map(transformCard),
+      attachments: body.included.attachments.map(transformAttachment),
       activities: body.included.actions.map(transformActivity),
     },
   }));
@@ -34,6 +36,7 @@ const getNotification = (id, headers) =>
       ...omit(body.included, 'actions'),
       users: body.included.users.map(transformUser),
       cards: body.included.cards.map(transformCard),
+      attachments: body.included.attachments.map(transformAttachment),
       activities: body.included.actions.map(transformActivity),
     },
   }));

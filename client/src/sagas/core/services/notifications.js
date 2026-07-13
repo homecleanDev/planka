@@ -17,17 +17,32 @@ export function* handleNotificationCreate(notification) {
   } else {
     let users;
     let cards;
+    let cardMemberships;
+    let cardLabels;
+    let tasks;
+    let attachments;
     let activities;
 
     try {
       ({
-        included: { users, cards, activities },
+        included: { users, cards, cardMemberships, cardLabels, tasks, attachments, activities },
       } = yield call(request, api.getNotification, notification.id));
     } catch {
       return;
     }
 
-    yield put(actions.handleNotificationCreate(notification, users, cards, activities));
+    yield put(
+      actions.handleNotificationCreate(
+        notification,
+        users,
+        cards,
+        cardMemberships,
+        cardLabels,
+        tasks,
+        attachments,
+        activities,
+      ),
+    );
   }
 }
 

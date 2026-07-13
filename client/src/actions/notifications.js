@@ -1,11 +1,24 @@
 import ActionTypes from '../constants/ActionTypes';
 
-const handleNotificationCreate = (notification, users, cards, activities) => ({
+const handleNotificationCreate = (
+  notification,
+  users,
+  cards,
+  cardMemberships,
+  cardLabels,
+  tasks,
+  attachments,
+  activities,
+) => ({
   type: ActionTypes.NOTIFICATION_CREATE_HANDLE,
   payload: {
     notification,
     users,
     cards,
+    cardMemberships,
+    cardLabels,
+    tasks,
+    attachments,
     activities,
   },
 });

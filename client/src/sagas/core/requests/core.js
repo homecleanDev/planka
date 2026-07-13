@@ -5,6 +5,41 @@ import request from '../request';
 import api from '../../../api';
 import mergeRecords from '../../../utils/merge-records';
 
+const mergeCardMemberships = (target, source) => {
+  const nextTarget = [...(target || [])];
+
+  (source || []).forEach((sourceRecord) => {
+    const isExisting = nextTarget.some(
+      (targetRecord) =>
+        targetRecord.cardId === sourceRecord.cardId && targetRecord.userId === sourceRecord.userId,
+    );
+
+    if (!isExisting) {
+      nextTarget.push(sourceRecord);
+    }
+  });
+
+  return nextTarget;
+};
+
+const mergeCardLabels = (target, source) => {
+  const nextTarget = [...(target || [])];
+
+  (source || []).forEach((sourceRecord) => {
+    const isExisting = nextTarget.some(
+      (targetRecord) =>
+        targetRecord.cardId === sourceRecord.cardId &&
+        targetRecord.labelId === sourceRecord.labelId,
+    );
+
+    if (!isExisting) {
+      nextTarget.push(sourceRecord);
+    }
+  });
+
+  return nextTarget;
+};
+
 export function* fetchCore() {
   const { item: user } = yield call(request, api.getCurrentUser, true);
   const { items: users1 } = yield call(request, api.getUsers);
@@ -54,7 +89,15 @@ export function* fetchCore() {
   let { items: notifications } = body;
 
   const {
-    included: { users: users3, cards: cards2, activities },
+    included: {
+      users: users3,
+      cards: cards2,
+      cardMemberships: cardMemberships2,
+      cardLabels: cardLabels2,
+      tasks: tasks2,
+      attachments: attachments2,
+      activities,
+    },
   } = body;
 
   if (card) {
@@ -80,10 +123,10 @@ export function* fetchCore() {
     boards,
     labels,
     lists,
-    cardMemberships,
-    cardLabels,
-    tasks,
-    attachments,
+    cardMemberships: mergeCardMemberships(cardMemberships, cardMemberships2),
+    cardLabels: mergeCardLabels(cardLabels, cardLabels2),
+    tasks: mergeRecords(tasks, tasks2),
+    attachments: mergeRecords(attachments, attachments2),
     activities,
     notifications,
     users: mergeRecords(users1, users2, users3),
