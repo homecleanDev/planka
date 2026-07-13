@@ -136,6 +136,18 @@ const updateCurrentUserAvatar = (data) => ({
   },
 });
 
+const impersonateUser = (id) => ({
+  type: EntryActionTypes.USER_IMPERSONATE,
+  payload: {
+    id,
+  },
+});
+
+const exitImpersonation = () => ({
+  type: EntryActionTypes.IMPERSONATION_EXIT,
+  payload: {},
+});
+
 const deleteUser = (id) => ({
   type: EntryActionTypes.USER_DELETE,
   payload: {
@@ -229,6 +241,8 @@ export default {
   clearUserUsernameUpdateError,
   clearCurrentUserUsernameUpdateError,
   updateCurrentUserAvatar,
+  impersonateUser,
+  exitImpersonation,
   deleteUser,
   handleUserDelete,
   addUserToCard,

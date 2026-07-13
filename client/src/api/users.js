@@ -64,6 +64,9 @@ const updateUserAvatar = (id, data, headers) =>
     item: transformUser(body.item),
   }));
 
+const impersonateUser = (id, headers) =>
+  socket.post(`/users/${id}/impersonate`, undefined, headers);
+
 const deleteUser = (id, headers) =>
   socket.delete(`/users/${id}`, undefined, headers).then((body) => ({
     ...body,
@@ -93,6 +96,7 @@ export default {
   updateUserPassword,
   updateUserUsername,
   updateUserAvatar,
+  impersonateUser,
   deleteUser,
   makeHandleUserCreate,
   makeHandleUserUpdate,

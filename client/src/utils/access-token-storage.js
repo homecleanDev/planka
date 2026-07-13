@@ -21,6 +21,7 @@ export const setAccessToken = (accessToken) => {
 export const removeAccessToken = () => {
   Cookies.remove(Config.ACCESS_TOKEN_KEY);
   Cookies.remove(Config.ACCESS_TOKEN_VERSION_KEY);
+  Cookies.remove(Config.IMPERSONATION_ACCESS_TOKEN_KEY);
 };
 
 export const getAccessToken = () => {
@@ -34,3 +35,20 @@ export const getAccessToken = () => {
 
   return accessToken;
 };
+
+export const setImpersonationAccessToken = (accessToken) => {
+  const { exp } = jwtDecode(accessToken);
+  const expires = new Date(exp * 1000);
+
+  Cookies.set(Config.IMPERSONATION_ACCESS_TOKEN_KEY, accessToken, {
+    expires,
+    secure: window.location.protocol === 'https:',
+    sameSite: 'strict',
+  });
+};
+
+export const removeImpersonationAccessToken = () => {
+  Cookies.remove(Config.IMPERSONATION_ACCESS_TOKEN_KEY);
+};
+
+export const getImpersonationAccessToken = () => Cookies.get(Config.IMPERSONATION_ACCESS_TOKEN_KEY);

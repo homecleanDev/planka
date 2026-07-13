@@ -27,6 +27,7 @@ const mapDispatchToProps = (dispatch) =>
       onEmailUpdateMessageDismiss: entryActions.clearUserEmailUpdateError,
       onPasswordUpdate: entryActions.updateUserPassword,
       onPasswordUpdateMessageDismiss: entryActions.clearUserPasswordUpdateError,
+      onImpersonate: entryActions.impersonateUser,
       onDelete: entryActions.deleteUser,
       onGroupCreate: entryActions.createGroup,
       onClose: entryActions.closeModal,

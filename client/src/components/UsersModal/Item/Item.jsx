@@ -34,6 +34,7 @@ const Item = React.memo(
     onEmailUpdateMessageDismiss,
     onPasswordUpdate,
     onPasswordUpdateMessageDismiss,
+    onImpersonate,
     onDelete,
   }) => {
     const handleIsAdminChange = useCallback(() => {
@@ -81,6 +82,7 @@ const Item = React.memo(
             onEmailUpdateMessageDismiss={onEmailUpdateMessageDismiss}
             onPasswordUpdate={onPasswordUpdate}
             onPasswordUpdateMessageDismiss={onPasswordUpdateMessageDismiss}
+            onImpersonate={onImpersonate}
             onDelete={onDelete}
           >
             <Button className={styles.button}>
@@ -120,6 +122,7 @@ Item.propTypes = {
   onEmailUpdateMessageDismiss: PropTypes.func.isRequired,
   onPasswordUpdate: PropTypes.func.isRequired,
   onPasswordUpdateMessageDismiss: PropTypes.func.isRequired,
+  onImpersonate: PropTypes.func.isRequired,
   onDelete: PropTypes.func.isRequired,
 };
 

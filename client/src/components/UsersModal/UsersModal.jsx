@@ -25,6 +25,7 @@ const UsersModal = React.memo(
     onEmailUpdateMessageDismiss,
     onPasswordUpdate,
     onPasswordUpdateMessageDismiss,
+    onImpersonate,
     onDelete,
     onGroupCreate,
     onClose,
@@ -89,6 +90,13 @@ const UsersModal = React.memo(
       [onDelete],
     );
 
+    const handleImpersonate = useCallback(
+      (id) => {
+        onImpersonate(id);
+      },
+      [onImpersonate],
+    );
+
     const handleGroupNameChange = useCallback((_, { value }) => {
       setGroupName(value);
     }, []);
@@ -147,56 +155,55 @@ const UsersModal = React.memo(
             context: 'title',
           }),
           render: () => (
-            <>
-              <Table unstackable basic="very">
-                <Table.Header>
-                  <Table.Row>
-                    <Table.HeaderCell />
-                    <Table.HeaderCell width={4}>{t('common.name')}</Table.HeaderCell>
-                    <Table.HeaderCell width={4}>{t('common.username')}</Table.HeaderCell>
-                    <Table.HeaderCell width={4}>{t('common.email')}</Table.HeaderCell>
-                    <Table.HeaderCell>{t('common.administrator')}</Table.HeaderCell>
-                    <Table.HeaderCell />
-                  </Table.Row>
-                </Table.Header>
-                <Table.Body>
-                  {items.map((item) => (
-                    <Item
-                      key={item.id}
-                      email={item.email}
-                      username={item.username}
-                      name={item.name}
-                      avatarUrl={item.avatarUrl}
-                      organization={item.organization}
-                      phone={item.phone}
-                      isAdmin={item.isAdmin}
-                      isLocked={item.isLocked}
-                      isRoleLocked={item.isRoleLocked}
-                      isUsernameLocked={item.isUsernameLocked}
-                      isDeletionLocked={item.isDeletionLocked}
-                      groups={item.groups}
-                      groupIds={item.groupIds}
-                      allGroups={groups}
-                      emailUpdateForm={item.emailUpdateForm}
-                      passwordUpdateForm={item.passwordUpdateForm}
-                      usernameUpdateForm={item.usernameUpdateForm}
-                      onUpdate={(data) => handleUpdate(item.id, data)}
-                      onUsernameUpdate={(data) => handleUsernameUpdate(item.id, data)}
-                      onUsernameUpdateMessageDismiss={() =>
-                        handleUsernameUpdateMessageDismiss(item.id)
-                      }
-                      onEmailUpdate={(data) => handleEmailUpdate(item.id, data)}
-                      onEmailUpdateMessageDismiss={() => handleEmailUpdateMessageDismiss(item.id)}
-                      onPasswordUpdate={(data) => handlePasswordUpdate(item.id, data)}
-                      onPasswordUpdateMessageDismiss={() =>
-                        handlePasswordUpdateMessageDismiss(item.id)
-                      }
-                      onDelete={() => handleDelete(item.id)}
-                    />
-                  ))}
-                </Table.Body>
-              </Table>
-            </>
+            <Table unstackable basic="very">
+              <Table.Header>
+                <Table.Row>
+                  <Table.HeaderCell />
+                  <Table.HeaderCell width={4}>{t('common.name')}</Table.HeaderCell>
+                  <Table.HeaderCell width={4}>{t('common.username')}</Table.HeaderCell>
+                  <Table.HeaderCell width={4}>{t('common.email')}</Table.HeaderCell>
+                  <Table.HeaderCell>{t('common.administrator')}</Table.HeaderCell>
+                  <Table.HeaderCell />
+                </Table.Row>
+              </Table.Header>
+              <Table.Body>
+                {items.map((item) => (
+                  <Item
+                    key={item.id}
+                    email={item.email}
+                    username={item.username}
+                    name={item.name}
+                    avatarUrl={item.avatarUrl}
+                    organization={item.organization}
+                    phone={item.phone}
+                    isAdmin={item.isAdmin}
+                    isLocked={item.isLocked}
+                    isRoleLocked={item.isRoleLocked}
+                    isUsernameLocked={item.isUsernameLocked}
+                    isDeletionLocked={item.isDeletionLocked}
+                    groups={item.groups}
+                    groupIds={item.groupIds}
+                    allGroups={groups}
+                    emailUpdateForm={item.emailUpdateForm}
+                    passwordUpdateForm={item.passwordUpdateForm}
+                    usernameUpdateForm={item.usernameUpdateForm}
+                    onUpdate={(data) => handleUpdate(item.id, data)}
+                    onUsernameUpdate={(data) => handleUsernameUpdate(item.id, data)}
+                    onUsernameUpdateMessageDismiss={() =>
+                      handleUsernameUpdateMessageDismiss(item.id)
+                    }
+                    onEmailUpdate={(data) => handleEmailUpdate(item.id, data)}
+                    onEmailUpdateMessageDismiss={() => handleEmailUpdateMessageDismiss(item.id)}
+                    onPasswordUpdate={(data) => handlePasswordUpdate(item.id, data)}
+                    onPasswordUpdateMessageDismiss={() =>
+                      handlePasswordUpdateMessageDismiss(item.id)
+                    }
+                    onImpersonate={() => handleImpersonate(item.id)}
+                    onDelete={() => handleDelete(item.id)}
+                  />
+                ))}
+              </Table.Body>
+            </Table>
           ),
         },
         {
@@ -305,12 +312,12 @@ const UsersModal = React.memo(
         handleEmailUpdateMessageDismiss,
         handlePasswordUpdate,
         handlePasswordUpdateMessageDismiss,
+        handleImpersonate,
         handleDelete,
         handleGroupCreate,
         handleGroupToggle,
         handleGroupUserAdd,
         handleGroupNameChange,
-        GroupUsersAddPopup,
       ],
     );
 
@@ -353,6 +360,7 @@ UsersModal.propTypes = {
   onEmailUpdateMessageDismiss: PropTypes.func.isRequired,
   onPasswordUpdate: PropTypes.func.isRequired,
   onPasswordUpdateMessageDismiss: PropTypes.func.isRequired,
+  onImpersonate: PropTypes.func.isRequired,
   onDelete: PropTypes.func.isRequired,
   onGroupCreate: PropTypes.func.isRequired,
   onClose: PropTypes.func.isRequired,

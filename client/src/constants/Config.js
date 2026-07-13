@@ -12,6 +12,7 @@ const SERVER_HOST_NAME = SERVER_BASE_URL.replace(/^(.*\/\/[^/?#]*).*$/, '$1');
 const ACCESS_TOKEN_KEY = 'accessToken';
 const ACCESS_TOKEN_VERSION_KEY = 'accessTokenVersion';
 const ACCESS_TOKEN_VERSION = '1';
+const IMPERSONATION_ACCESS_TOKEN_KEY = 'impersonationAccessToken';
 
 const POSITION_GAP = 65535;
 const ACTIVITIES_LIMIT = 50;
@@ -24,6 +25,7 @@ export default {
   ACCESS_TOKEN_KEY,
   ACCESS_TOKEN_VERSION_KEY,
   ACCESS_TOKEN_VERSION,
+  IMPERSONATION_ACCESS_TOKEN_KEY,
   POSITION_GAP,
   ACTIVITIES_LIMIT,
 };

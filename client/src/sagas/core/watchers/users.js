@@ -61,6 +61,10 @@ export default function* usersWatchers() {
     takeEvery(EntryActionTypes.CURRENT_USER_AVATAR_UPDATE, ({ payload: { data } }) =>
       services.updateCurrentUserAvatar(data),
     ),
+    takeEvery(EntryActionTypes.USER_IMPERSONATE, ({ payload: { id } }) =>
+      services.impersonateUser(id),
+    ),
+    takeEvery(EntryActionTypes.IMPERSONATION_EXIT, () => services.exitImpersonation()),
     takeEvery(EntryActionTypes.USER_DELETE, ({ payload: { id } }) => services.deleteUser(id)),
     takeEvery(EntryActionTypes.USER_DELETE_HANDLE, ({ payload: { user } }) =>
       services.handleUserDelete(user),

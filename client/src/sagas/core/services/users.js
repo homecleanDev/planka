@@ -5,7 +5,13 @@ import request from '../request';
 import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
-import { setAccessToken } from '../../../utils/access-token-storage';
+import {
+  getAccessToken,
+  getImpersonationAccessToken,
+  removeImpersonationAccessToken,
+  setAccessToken,
+  setImpersonationAccessToken,
+} from '../../../utils/access-token-storage';
 
 export function* createUser(data) {
   yield put(actions.createUser(data));
@@ -199,6 +205,51 @@ export function* updateCurrentUserAvatar(data) {
   yield call(updateUserAvatar, id, data);
 }
 
+export function* impersonateUser(id) {
+  const currentAccessToken = yield call(getAccessToken);
+
+  if (!currentAccessToken) {
+    return;
+  }
+
+  let accessToken;
+  try {
+    ({ item: accessToken } = yield call(request, api.impersonateUser, id));
+  } catch (error) {
+    return;
+  }
+
+  const impersonationAccessToken = yield call(getImpersonationAccessToken);
+
+  if (!impersonationAccessToken) {
+    yield call(setImpersonationAccessToken, currentAccessToken);
+  }
+
+  yield call(setAccessToken, accessToken);
+  window.location.reload();
+}
+
+export function* exitImpersonation() {
+  const accessToken = yield call(getImpersonationAccessToken);
+  const currentAccessToken = yield call(getAccessToken);
+
+  if (!accessToken) {
+    return;
+  }
+
+  if (currentAccessToken) {
+    try {
+      yield call(api.deleteCurrentAccessToken, {
+        Authorization: `Bearer ${currentAccessToken}`,
+      });
+    } catch (error) {} // eslint-disable-line no-empty
+  }
+
+  yield call(setAccessToken, accessToken);
+  yield call(removeImpersonationAccessToken);
+  window.location.reload();
+}
+
 export function* deleteUser(id) {
   yield put(actions.deleteUser(id));
 
@@ -319,6 +370,8 @@ export default {
   clearCurrentUserUsernameUpdateError,
   updateUserAvatar,
   updateCurrentUserAvatar,
+  impersonateUser,
+  exitImpersonation,
   deleteUser,
   handleUserDelete,
   addUserToCard,

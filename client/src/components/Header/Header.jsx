@@ -2,6 +2,7 @@ import React, { useCallback } from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Button, Icon, Menu } from 'semantic-ui-react';
 import { usePopup } from '../../lib/popup';
 
@@ -23,14 +24,18 @@ const Header = React.memo(
     user,
     notifications,
     isLogouting,
+    isImpersonating,
     canEditProject,
     canEditUsers,
     onProjectSettingsClick,
     onUsersClick,
     onNotificationDelete,
     onUserSettingsClick,
+    onExitImpersonation,
     onLogout,
   }) => {
+    const [t] = useTranslation();
+
     const handleProjectSettingsClick = useCallback(() => {
       onProjectSettingsClick();
     }, [onProjectSettingsClick]);
@@ -72,6 +77,16 @@ const Header = React.memo(
             </Menu.Menu>
           )}
           <Menu.Menu position="right">
+            {isImpersonating && (
+              <Menu.Item
+                className={classNames(styles.item, styles.itemHoverable)}
+                onClick={onExitImpersonation}
+              >
+                {t('common.exitImpersonation', {
+                  defaultValue: 'Exit impersonation',
+                })}
+              </Menu.Item>
+            )}
             {canEditUsers && (
               <Menu.Item
                 className={classNames(styles.item, styles.itemHoverable)}
@@ -112,12 +127,14 @@ Header.propTypes = {
   notifications: PropTypes.array.isRequired,
   /* eslint-enable react/forbid-prop-types */
   isLogouting: PropTypes.bool.isRequired,
+  isImpersonating: PropTypes.bool.isRequired,
   canEditProject: PropTypes.bool.isRequired,
   canEditUsers: PropTypes.bool.isRequired,
   onProjectSettingsClick: PropTypes.func.isRequired,
   onUsersClick: PropTypes.func.isRequired,
   onNotificationDelete: PropTypes.func.isRequired,
   onUserSettingsClick: PropTypes.func.isRequired,
+  onExitImpersonation: PropTypes.func.isRequired,
   onLogout: PropTypes.func.isRequired,
 };
 

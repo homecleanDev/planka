@@ -34,6 +34,7 @@ const ActionsStep = React.memo(
     onEmailUpdateMessageDismiss,
     onPasswordUpdate,
     onPasswordUpdateMessageDismiss,
+    onImpersonate,
     onDelete,
     onClose,
   }) => {
@@ -63,6 +64,11 @@ const ActionsStep = React.memo(
     const handleEditGroupClick = useCallback(() => {
       openStep(StepTypes.EDIT_GROUP);
     }, [openStep]);
+
+    const handleImpersonateClick = useCallback(() => {
+      onImpersonate();
+      onClose();
+    }, [onImpersonate, onClose]);
 
     if (step) {
       switch (step.type) {
@@ -165,6 +171,12 @@ const ActionsStep = React.memo(
             </Menu.Item>
             {!user.isLocked && (
               <>
+                <Menu.Item className={styles.menuItem} onClick={handleImpersonateClick}>
+                  {t('action.impersonate', {
+                    context: 'title',
+                    defaultValue: 'Impersonate',
+                  })}
+                </Menu.Item>
                 <Menu.Item className={styles.menuItem} onClick={handleEditEmailClick}>
                   {t('action.editEmail', {
                     context: 'title',
@@ -200,6 +212,7 @@ ActionsStep.propTypes = {
   onEmailUpdateMessageDismiss: PropTypes.func.isRequired,
   onPasswordUpdate: PropTypes.func.isRequired,
   onPasswordUpdateMessageDismiss: PropTypes.func.isRequired,
+  onImpersonate: PropTypes.func.isRequired,
   onDelete: PropTypes.func.isRequired,
   onClose: PropTypes.func.isRequired,
 };

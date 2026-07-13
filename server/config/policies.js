@@ -19,6 +19,7 @@ module.exports.policies = {
   '*': 'is-authenticated',
 
   'users/create': ['is-authenticated', 'is-admin'],
+  'users/impersonate': ['is-authenticated', 'is-admin'],
   'users/delete': ['is-authenticated', 'is-admin'],
   'groups/index': ['is-authenticated', 'is-admin'],
   'groups/create': ['is-authenticated', 'is-admin'],

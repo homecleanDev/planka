@@ -4,6 +4,7 @@ import { connect } from 'react-redux';
 import selectors from '../selectors';
 import entryActions from '../entry-actions';
 import Header from '../components/Header';
+import { getImpersonationAccessToken } from '../utils/access-token-storage';
 
 const mapStateToProps = (state) => {
   const isLogouting = selectors.selectIsLogouting(state);
@@ -17,6 +18,7 @@ const mapStateToProps = (state) => {
     isLogouting,
     project: currentProject,
     user: currentUser,
+    isImpersonating: !!getImpersonationAccessToken(),
     canEditProject: isCurrentUserManager,
     canEditUsers: currentUser.isAdmin,
   };
@@ -29,6 +31,7 @@ const mapDispatchToProps = (dispatch) =>
       onUsersClick: entryActions.openUsersModal,
       onNotificationDelete: entryActions.deleteNotification,
       onUserSettingsClick: entryActions.openUserSettingsModal,
+      onExitImpersonation: entryActions.exitImpersonation,
       onLogout: entryActions.logout,
     },
     dispatch,
