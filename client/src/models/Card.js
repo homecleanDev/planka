@@ -42,6 +42,9 @@ export default class extends BaseModel {
     isActivitiesDetailsFetching: attr({
       getDefault: () => false,
     }),
+    isListFetched: attr({
+      getDefault: () => false,
+    }),
     boardId: fk({
       to: 'Board',
       as: 'board',
@@ -103,7 +106,10 @@ export default class extends BaseModel {
       case ActionTypes.BOARD_MEMBERSHIP_CREATE_HANDLE:
         if (payload.cards) {
           payload.cards.forEach((card) => {
-            Card.upsert(card);
+            Card.upsert({
+              ...card,
+              isListFetched: card.isListFetched !== undefined ? card.isListFetched : true,
+            });
           });
         }
 
@@ -124,7 +130,10 @@ export default class extends BaseModel {
 
         if (payload.cards) {
           payload.cards.forEach((card) => {
-            Card.upsert(card);
+            Card.upsert({
+              ...card,
+              isListFetched: card.isListFetched !== undefined ? card.isListFetched : true,
+            });
           });
         }
 
@@ -176,7 +185,10 @@ export default class extends BaseModel {
       case ActionTypes.BOARD_FETCH__SUCCESS:
       case ActionTypes.LIST_CARDS_FETCH__SUCCESS:
         payload.cards.forEach((card) => {
-          Card.upsert(card);
+          Card.upsert({
+            ...card,
+            isListFetched: true,
+          });
         });
 
         this.syncIncludedRelations(
@@ -211,9 +223,22 @@ export default class extends BaseModel {
         break;
       case ActionTypes.LIST_SORT__SUCCESS:
       case ActionTypes.LIST_SORT_HANDLE:
+        payload.cards.forEach((card) => {
+          Card.upsert({
+            ...card,
+            isListFetched: true,
+          });
+        });
+
+        break;
       case ActionTypes.NOTIFICATION_CREATE_HANDLE:
         payload.cards.forEach((card) => {
-          Card.upsert(card);
+          const cardModel = Card.withId(card.id);
+
+          Card.upsert({
+            ...card,
+            isListFetched: cardModel ? cardModel.isListFetched : false,
+          });
         });
 
         this.syncIncludedRelations(
@@ -227,16 +252,29 @@ export default class extends BaseModel {
       case ActionTypes.CARD_CREATE:
       case ActionTypes.CARD_UPDATE__SUCCESS:
       case ActionTypes.CARD_UPDATE_HANDLE:
-        Card.upsert(payload.card);
+        Card.upsert(
+          type === ActionTypes.CARD_CREATE
+            ? {
+                ...payload.card,
+                isListFetched: true,
+              }
+            : payload.card,
+        );
 
         break;
       case ActionTypes.CARD_CREATE__SUCCESS:
         Card.withId(payload.localId).delete();
-        Card.upsert(payload.card);
+        Card.upsert({
+          ...payload.card,
+          isListFetched: true,
+        });
 
         break;
       case ActionTypes.CARD_CREATE_HANDLE: {
-        const cardModel = Card.upsert(payload.card);
+        const cardModel = Card.upsert({
+          ...payload.card,
+          isListFetched: true,
+        });
 
         payload.cardMemberships.forEach(({ userId }) => {
           cardModel.users.add(userId);
@@ -266,6 +304,7 @@ export default class extends BaseModel {
             'stopwatch',
           ]),
           ...payload.card,
+          isListFetched: true,
         });
 
         cardModel.users.toRefArray().forEach(({ id }) => {
@@ -280,7 +319,10 @@ export default class extends BaseModel {
       }
       case ActionTypes.CARD_DUPLICATE__SUCCESS: {
         Card.withId(payload.localId).deleteWithRelated();
-        const cardModel = Card.upsert(payload.card);
+        const cardModel = Card.upsert({
+          ...payload.card,
+          isListFetched: true,
+        });
 
         payload.cardMemberships.forEach(({ userId }) => {
           cardModel.users.add(userId);

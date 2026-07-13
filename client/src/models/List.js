@@ -87,6 +87,14 @@ export default class extends BaseModel {
     return this.cards.orderBy('position');
   }
 
+  getOrderedListFetchedCardsQuerySet() {
+    return this.cards
+      .filter({
+        isListFetched: true,
+      })
+      .orderBy('position');
+  }
+
   getFilteredOrderedCardsModelArray() {
     let cardModels = this.getOrderedCardsQuerySet().toModelArray();
 

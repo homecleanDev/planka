@@ -116,6 +116,16 @@ export function* fetchCore() {
     }
   }
 
+  const boardCards = (cards1 || []).map((cardRecord) => ({
+    ...cardRecord,
+    isListFetched: true,
+  }));
+
+  const notificationCards = (cards2 || []).map((cardRecord) => ({
+    ...cardRecord,
+    isListFetched: false,
+  }));
+
   return {
     user,
     board,
@@ -133,7 +143,7 @@ export function* fetchCore() {
     groups,
     projects: mergeRecords(projects1, projects2),
     boardMemberships: mergeRecords(boardMemberships1, boardMemberships2),
-    cards: mergeRecords(cards1, cards2),
+    cards: mergeRecords(notificationCards, boardCards),
   };
 }
 

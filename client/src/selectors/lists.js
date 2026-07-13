@@ -60,6 +60,26 @@ export const makeSelectAllCardIdsByListId = () =>
 
 export const selectAllCardIdsByListId = makeSelectAllCardIdsByListId();
 
+export const makeSelectListFetchedCardIdsByListId = () =>
+  createSelector(
+    orm,
+    (_, id) => id,
+    ({ List }, id) => {
+      const listModel = List.withId(id);
+
+      if (!listModel) {
+        return listModel;
+      }
+
+      return listModel
+        .getOrderedListFetchedCardsQuerySet()
+        .toRefArray()
+        .map((card) => card.id);
+    },
+  );
+
+export const selectListFetchedCardIdsByListId = makeSelectListFetchedCardIdsByListId();
+
 export default {
   makeSelectListById,
   selectListById,
@@ -67,4 +87,6 @@ export default {
   selectCardIdsByListId,
   makeSelectAllCardIdsByListId,
   selectAllCardIdsByListId,
+  makeSelectListFetchedCardIdsByListId,
+  selectListFetchedCardIdsByListId,
 };

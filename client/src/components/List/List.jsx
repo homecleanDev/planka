@@ -90,6 +90,12 @@ const List = React.memo(
     }, [cardIds, isAddCardOpened]);
 
     useEffect(() => {
+      if (!filterText && !isFetchingCards) {
+        paginationCursorRef.current = lastCardPosition;
+      }
+    }, [filterText, isFetchingCards, lastCardPosition]);
+
+    useEffect(() => {
       if (!isFetchingCards || requestedCardsCount.current === null) {
         return undefined;
       }

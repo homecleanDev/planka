@@ -157,7 +157,17 @@ export function* handleLocationChange() {
         } catch (error) {} // eslint-disable-line no-empty
       }
 
-      cards = mergeRecords(cards, currentCard ? [currentCard] : []);
+      cards = mergeRecords(
+        currentCard
+          ? [
+              {
+                ...currentCard,
+                isListFetched: false,
+              },
+            ]
+          : [],
+        cards && cards.map((cardRecord) => ({ ...cardRecord, isListFetched: true })),
+      );
 
       cardMemberships = mergeCardMemberships(cardMemberships, currentCardMemberships);
       cardLabels = mergeCardLabels(cardLabels, currentCardLabels);

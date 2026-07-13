@@ -9,18 +9,19 @@ import List from '../components/List';
 const makeMapStateToProps = () => {
   const selectListById = selectors.makeSelectListById();
   const selectCardIdsByListId = selectors.makeSelectCardIdsByListId();
-  const selectAllCardIdsByListId = selectors.makeSelectAllCardIdsByListId();
+  const selectListFetchedCardIdsByListId = selectors.makeSelectListFetchedCardIdsByListId();
   const selectCardById = selectors.makeSelectCardById();
 
   return (state, { id, index }) => {
     const { name, isPersisted } = selectListById(state, id);
     const cardIds = selectCardIdsByListId(state, id);
-    const allCardIds = selectAllCardIdsByListId(state, id);
+    const listFetchedCardIds = selectListFetchedCardIdsByListId(state, id);
     const currentUserMembership = selectors.selectCurrentUserMembershipForCurrentBoard(state);
     const isCurrentUserManager = selectors.selectIsCurrentUserManagerForCurrentProject(state);
     const currentProject = selectors.selectCurrentProject(state);
     const filterText = selectors.selectFilterTextForCurrentBoard(state);
-    const lastCardId = allCardIds.length > 0 ? allCardIds[allCardIds.length - 1] : null;
+    const lastCardId =
+      listFetchedCardIds.length > 0 ? listFetchedCardIds[listFetchedCardIds.length - 1] : null;
     const lastCard = lastCardId ? selectCardById(state, lastCardId) : null;
 
     const isCurrentUserEditor =
