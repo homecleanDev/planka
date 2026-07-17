@@ -112,6 +112,13 @@ const filterText = (text) => ({
   },
 });
 
+const updateUnreadFilterInCurrentBoard = (isEnabled) => ({
+  type: EntryActionTypes.UNREAD_FILTER_IN_CURRENT_BOARD_UPDATE,
+  payload: {
+    isEnabled,
+  },
+});
+
 export default {
   createCard,
   handleCardCreate,
@@ -128,4 +135,5 @@ export default {
   deleteCurrentCard,
   handleCardDelete,
   filterText,
+  updateUnreadFilterInCurrentBoard,
 };

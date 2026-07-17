@@ -42,5 +42,9 @@ export default function* cardsWatchers() {
     takeEvery(EntryActionTypes.TEXT_FILTER_IN_CURRENT_BOARD, ({ payload: { text } }) =>
       services.handleTextFilter(text),
     ),
+    takeEvery(
+      EntryActionTypes.UNREAD_FILTER_IN_CURRENT_BOARD_UPDATE,
+      ({ payload: { isEnabled } }) => services.updateUnreadFilterInCurrentBoard(isEnabled),
+    ),
   ]);
 }

@@ -129,6 +129,14 @@ const filterText = (boardId, text) => ({
   },
 });
 
+const updateUnreadFilterInCurrentBoard = (boardId, isEnabled) => ({
+  type: ActionTypes.UNREAD_FILTER_IN_CURRENT_BOARD_UPDATE,
+  payload: {
+    boardId,
+    isEnabled,
+  },
+});
+
 const searchInCurrentBoard = () => ({
   type: ActionTypes.BOARD_SEARCH_IN_CURRENT_BOARD,
   payload: {},
@@ -148,5 +156,6 @@ export default {
   deleteCard,
   handleCardDelete,
   filterText,
+  updateUnreadFilterInCurrentBoard,
   searchInCurrentBoard,
 };

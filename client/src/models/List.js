@@ -131,6 +131,7 @@ export default class extends BaseModel {
 
     const filterUserIds = this.board.filterUsers.toRefArray().map((user) => user.id);
     const filterLabelIds = this.board.filterLabels.toRefArray().map((label) => label.id);
+    const { isUnreadFilterEnabled } = this.board;
 
     if (filterUserIds.length > 0) {
       cardModels = cardModels.filter((cardModel) => {
@@ -146,6 +147,12 @@ export default class extends BaseModel {
 
         return labels.some((label) => filterLabelIds.includes(label.id));
       });
+    }
+
+    if (isUnreadFilterEnabled) {
+      cardModels = cardModels.filter(
+        (cardModel) => cardModel.getUnreadNotificationsQuerySet().count() > 0,
+      );
     }
 
     return cardModels;

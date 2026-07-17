@@ -193,6 +193,24 @@ export const selectFilterTextForCurrentBoard = createSelector(
   },
 );
 
+export const selectIsUnreadFilterEnabledForCurrentBoard = createSelector(
+  orm,
+  (state) => selectPath(state).boardId,
+  ({ Board }, id) => {
+    if (!id) {
+      return id;
+    }
+
+    const boardModel = Board.withId(id);
+
+    if (!boardModel) {
+      return boardModel;
+    }
+
+    return boardModel.isUnreadFilterEnabled;
+  },
+);
+
 export const selectIsBoardWithIdExists = createSelector(
   orm,
   (_, id) => id,
@@ -210,5 +228,6 @@ export default {
   selectFilterUsersForCurrentBoard,
   selectFilterLabelsForCurrentBoard,
   selectFilterTextForCurrentBoard,
+  selectIsUnreadFilterEnabledForCurrentBoard,
   selectIsBoardWithIdExists,
 };

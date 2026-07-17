@@ -265,6 +265,12 @@ export function* handleTextFilter(text) {
   }
 }
 
+export function* updateUnreadFilterInCurrentBoard(isEnabled) {
+  const { boardId } = yield select(selectors.selectPath);
+
+  yield put(actions.updateUnreadFilterInCurrentBoard(boardId, isEnabled));
+}
+
 export default {
   createCard,
   handleCardCreate,
@@ -281,4 +287,5 @@ export default {
   deleteCurrentCard,
   handleCardDelete,
   handleTextFilter,
+  updateUnreadFilterInCurrentBoard,
 };

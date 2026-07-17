@@ -1,11 +1,9 @@
 const STORAGE_KEY_PREFIX = 'planka_board_filters_';
 
-export const saveBoardFilters = (boardId, filterUsers) => {
+export const saveBoardFilters = (boardId, filters) => {
   try {
     const storageKey = `${STORAGE_KEY_PREFIX}${boardId}`;
-    localStorage.setItem(storageKey, JSON.stringify({
-      filterUsers: filterUsers.map(user => user.id),
-    }));
+    localStorage.setItem(storageKey, JSON.stringify(filters));
   } catch (error) {
     console.error('Failed to save board filters to localStorage:', error);
   }

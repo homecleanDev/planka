@@ -32,7 +32,42 @@ export default class extends BaseModel {
     filterText: attr({
       getDefault: () => '',
     }),
+    isUnreadFilterEnabled: attr({
+      getDefault: () => false,
+    }),
   };
+
+  static applySavedFilters(board, savedFilters) {
+    if (!savedFilters) {
+      return;
+    }
+
+    if (savedFilters.filterUsers) {
+      savedFilters.filterUsers.forEach((userId) => {
+        board.filterUsers.add(userId);
+      });
+    }
+
+    if (savedFilters.filterLabels) {
+      savedFilters.filterLabels.forEach((labelId) => {
+        board.filterLabels.add(labelId);
+      });
+    }
+
+    board.update({
+      filterText: savedFilters.filterText || '',
+      isUnreadFilterEnabled: !!savedFilters.isUnreadFilterEnabled,
+    });
+  }
+
+  static saveFilters(board) {
+    saveBoardFilters(board.id, {
+      filterUsers: board.filterUsers.toRefArray().map((user) => user.id),
+      filterLabels: board.filterLabels.toRefArray().map((label) => label.id),
+      filterText: board.filterText,
+      isUnreadFilterEnabled: board.isUnreadFilterEnabled,
+    });
+  }
 
   static reducer({ type, payload }, Board) {
     switch (type) {
@@ -43,13 +78,7 @@ export default class extends BaseModel {
             isFetching: false,
           });
 
-          // Load saved filters
-          const savedFilters = loadBoardFilters(payload.board.id);
-          if (savedFilters && savedFilters.filterUsers) {
-            savedFilters.filterUsers.forEach(userId => {
-              board.filterUsers.add(userId);
-            });
-          }
+          this.applySavedFilters(board, loadBoardFilters(payload.board.id));
         }
 
         break;
@@ -96,13 +125,7 @@ export default class extends BaseModel {
             isFetching: false,
           });
 
-          // Load saved filters on core initialization
-          const savedFiltersOnInit = loadBoardFilters(payload.board.id);
-          if (savedFiltersOnInit && savedFiltersOnInit.filterUsers) {
-            savedFiltersOnInit.filterUsers.forEach(userId => {
-              initializedBoard.filterUsers.add(userId);
-            });
-          }
+          this.applySavedFilters(initializedBoard, loadBoardFilters(payload.board.id));
         }
 
         payload.boards.forEach((board) => {
@@ -110,17 +133,19 @@ export default class extends BaseModel {
         });
 
         break;
-      case ActionTypes.USER_TO_BOARD_FILTER_ADD:
+      case ActionTypes.USER_TO_BOARD_FILTER_ADD: {
         const boardWithAddedUser = Board.withId(payload.boardId);
         boardWithAddedUser.filterUsers.add(payload.id);
-        saveBoardFilters(payload.boardId, boardWithAddedUser.filterUsers.toRefArray());
+        this.saveFilters(boardWithAddedUser);
         break;
+      }
 
-      case ActionTypes.USER_FROM_BOARD_FILTER_REMOVE:
+      case ActionTypes.USER_FROM_BOARD_FILTER_REMOVE: {
         const boardWithRemovedUser = Board.withId(payload.boardId);
         boardWithRemovedUser.filterUsers.remove(payload.id);
-        saveBoardFilters(payload.boardId, boardWithRemovedUser.filterUsers.toRefArray());
+        this.saveFilters(boardWithRemovedUser);
         break;
+      }
 
       case ActionTypes.PROJECT_CREATE_HANDLE:
         payload.boards.forEach((board) => {
@@ -155,21 +180,16 @@ export default class extends BaseModel {
         Board.upsert(payload.board);
 
         break;
-      case ActionTypes.BOARD_FETCH__SUCCESS:
+      case ActionTypes.BOARD_FETCH__SUCCESS: {
         const fetchedBoard = Board.upsert({
           ...payload.board,
           isFetching: false,
         });
 
-        // Load saved filters after board fetch
-        const savedFiltersAfterFetch = loadBoardFilters(payload.board.id);
-        if (savedFiltersAfterFetch && savedFiltersAfterFetch.filterUsers) {
-          savedFiltersAfterFetch.filterUsers.forEach(userId => {
-            fetchedBoard.filterUsers.add(userId);
-          });
-        }
+        this.applySavedFilters(fetchedBoard, loadBoardFilters(payload.board.id));
 
         break;
+      }
       case ActionTypes.BOARD_FETCH__FAILURE:
         Board.withId(payload.id).update({
           isFetching: null,
@@ -194,14 +214,31 @@ export default class extends BaseModel {
 
         break;
       }
-      case ActionTypes.LABEL_TO_BOARD_FILTER_ADD:
-        Board.withId(payload.boardId).filterLabels.add(payload.id);
+      case ActionTypes.LABEL_TO_BOARD_FILTER_ADD: {
+        const boardWithAddedLabel = Board.withId(payload.boardId);
+        boardWithAddedLabel.filterLabels.add(payload.id);
+        this.saveFilters(boardWithAddedLabel);
 
         break;
-      case ActionTypes.LABEL_FROM_BOARD_FILTER_REMOVE:
-        Board.withId(payload.boardId).filterLabels.remove(payload.id);
+      }
+      case ActionTypes.LABEL_FROM_BOARD_FILTER_REMOVE: {
+        const boardWithRemovedLabel = Board.withId(payload.boardId);
+        boardWithRemovedLabel.filterLabels.remove(payload.id);
+        this.saveFilters(boardWithRemovedLabel);
 
         break;
+      }
+      case ActionTypes.UNREAD_FILTER_IN_CURRENT_BOARD_UPDATE: {
+        const board = Board.withId(payload.boardId);
+
+        board.update({
+          isUnreadFilterEnabled: payload.isEnabled,
+        });
+
+        this.saveFilters(board);
+
+        break;
+      }
       case ActionTypes.TEXT_FILTER_IN_CURRENT_BOARD: {
         const board = Board.withId(payload.boardId);
         let filterText = payload.text;
@@ -240,6 +277,7 @@ export default class extends BaseModel {
         }
 
         board.update({ filterText });
+        this.saveFilters(board);
 
         break;
       }

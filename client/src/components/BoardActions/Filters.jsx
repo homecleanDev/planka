@@ -18,6 +18,7 @@ const Filters = React.memo(
     users,
     labels,
     filterText,
+    isUnreadFilterEnabled,
     isSearchFetching,
     allBoardMemberships,
     allLabels,
@@ -31,6 +32,7 @@ const Filters = React.memo(
     onLabelMove,
     onLabelDelete,
     onTextFilterUpdate,
+    onUnreadFilterUpdate,
   }) => {
     const [t] = useTranslation();
     const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -83,6 +85,10 @@ const Filters = React.memo(
     const handleCancelSearchClick = useCallback(() => {
       cancelSearch();
     }, [cancelSearch]);
+
+    const handleUnreadFilterClick = useCallback(() => {
+      onUnreadFilterUpdate(!isUnreadFilterEnabled);
+    }, [isUnreadFilterEnabled, onUnreadFilterUpdate]);
 
     const BoardMembershipsPopup = usePopup(BoardMembershipsStep);
     const LabelsPopup = usePopup(LabelsStep);
@@ -145,12 +151,33 @@ const Filters = React.memo(
           ))}
         </span>
         <span className={styles.filter}>
+          <button
+            type="button"
+            className={classNames(
+              styles.filterButton,
+              isUnreadFilterEnabled && styles.filterButtonActive,
+            )}
+            onClick={handleUnreadFilterClick}
+          >
+            <span className={styles.filterTitle}>{`${t('common.unread')}:`}</span>
+            <span className={styles.filterLabel}>
+              {isUnreadFilterEnabled ? t('common.on') : t('common.all')}
+            </span>
+          </button>
+        </span>
+        <span className={styles.filter}>
           <span className={styles.searchWrapper}>
             <Input
               ref={searchFieldRef}
               value={filterText}
               placeholder={t('common.searchCards')}
-              icon={isSearchActive ? <Icon link name="cancel" onClick={handleCancelSearchClick} /> : 'search'}
+              icon={
+                isSearchActive ? (
+                  <Icon link name="cancel" onClick={handleCancelSearchClick} />
+                ) : (
+                  'search'
+                )
+              }
               className={classNames(styles.search, !isSearchActive && styles.searchInactive)}
               onFocus={handleSearchFocus}
               onKeyDown={handleSearchKeyDown}
@@ -174,6 +201,7 @@ Filters.propTypes = {
   users: PropTypes.array.isRequired,
   labels: PropTypes.array.isRequired,
   filterText: PropTypes.string.isRequired,
+  isUnreadFilterEnabled: PropTypes.bool.isRequired,
   isSearchFetching: PropTypes.bool.isRequired,
   allBoardMemberships: PropTypes.array.isRequired,
   allLabels: PropTypes.array.isRequired,
@@ -188,6 +216,7 @@ Filters.propTypes = {
   onLabelMove: PropTypes.func.isRequired,
   onLabelDelete: PropTypes.func.isRequired,
   onTextFilterUpdate: PropTypes.func.isRequired,
+  onUnreadFilterUpdate: PropTypes.func.isRequired,
 };
 
 export default Filters;

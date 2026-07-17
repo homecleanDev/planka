@@ -14,6 +14,7 @@ const mapStateToProps = (state) => {
   const filterUsers = selectors.selectFilterUsersForCurrentBoard(state);
   const filterLabels = selectors.selectFilterLabelsForCurrentBoard(state);
   const filterText = selectors.selectFilterTextForCurrentBoard(state);
+  const isUnreadFilterEnabled = selectors.selectIsUnreadFilterEnabledForCurrentBoard(state);
   const isSearchFetching = selectors.selectIsBoardSearchFetching(state);
   const currentUserMembership = selectors.selectCurrentUserMembershipForCurrentBoard(state);
 
@@ -26,6 +27,7 @@ const mapStateToProps = (state) => {
     filterUsers,
     filterLabels,
     filterText,
+    isUnreadFilterEnabled,
     isSearchFetching,
     allUsers,
     canEdit: isCurrentUserEditor,
@@ -48,6 +50,7 @@ const mapDispatchToProps = (dispatch) =>
       onLabelMove: entryActions.moveLabel,
       onLabelDelete: entryActions.deleteLabel,
       onTextFilterUpdate: entryActions.filterText,
+      onUnreadFilterUpdate: entryActions.updateUnreadFilterInCurrentBoard,
     },
     dispatch,
   );

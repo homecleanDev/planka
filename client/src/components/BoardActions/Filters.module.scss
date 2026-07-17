@@ -12,6 +12,16 @@
     padding: 0;
   }
 
+  .filterButtonActive {
+    .filterLabel {
+      background: #2185d0;
+
+      &:hover {
+        background: #1678c2;
+      }
+    }
+  }
+
   .filterItem {
     display: inline-block;
     font-size: 0;
