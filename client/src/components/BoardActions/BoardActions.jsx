@@ -15,6 +15,7 @@ const BoardActions = React.memo(
     filterLabels,
     filterText,
     isUnreadFilterEnabled,
+    dueDateFilter,
     isSearchFetching,
     allUsers,
     canEdit,
@@ -32,6 +33,7 @@ const BoardActions = React.memo(
     onLabelDelete,
     onTextFilterUpdate,
     onUnreadFilterUpdate,
+    onDueDateFilterUpdate,
   }) => {
     return (
       <div className={styles.wrapper}>
@@ -53,6 +55,7 @@ const BoardActions = React.memo(
               labels={filterLabels}
               filterText={filterText}
               isUnreadFilterEnabled={isUnreadFilterEnabled}
+              dueDateFilter={dueDateFilter}
               isSearchFetching={isSearchFetching}
               allBoardMemberships={memberships}
               allLabels={labels}
@@ -67,6 +70,7 @@ const BoardActions = React.memo(
               onLabelDelete={onLabelDelete}
               onTextFilterUpdate={onTextFilterUpdate}
               onUnreadFilterUpdate={onUnreadFilterUpdate}
+              onDueDateFilterUpdate={onDueDateFilterUpdate}
             />
           </div>
         </div>
@@ -83,6 +87,7 @@ BoardActions.propTypes = {
   filterLabels: PropTypes.array.isRequired,
   filterText: PropTypes.string.isRequired,
   isUnreadFilterEnabled: PropTypes.bool.isRequired,
+  dueDateFilter: PropTypes.string,
   isSearchFetching: PropTypes.bool.isRequired,
   allUsers: PropTypes.array.isRequired,
   /* eslint-enable react/forbid-prop-types */
@@ -101,6 +106,11 @@ BoardActions.propTypes = {
   onLabelDelete: PropTypes.func.isRequired,
   onTextFilterUpdate: PropTypes.func.isRequired,
   onUnreadFilterUpdate: PropTypes.func.isRequired,
+  onDueDateFilterUpdate: PropTypes.func.isRequired,
+};
+
+BoardActions.defaultProps = {
+  dueDateFilter: undefined,
 };
 
 export default BoardActions;

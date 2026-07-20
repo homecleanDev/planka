@@ -35,6 +35,9 @@ export default class extends BaseModel {
     isUnreadFilterEnabled: attr({
       getDefault: () => false,
     }),
+    dueDateFilter: attr({
+      getDefault: () => null,
+    }),
   };
 
   static applySavedFilters(board, savedFilters) {
@@ -57,6 +60,7 @@ export default class extends BaseModel {
     board.update({
       filterText: savedFilters.filterText || '',
       isUnreadFilterEnabled: !!savedFilters.isUnreadFilterEnabled,
+      dueDateFilter: savedFilters.dueDateFilter || null,
     });
   }
 
@@ -66,6 +70,7 @@ export default class extends BaseModel {
       filterLabels: board.filterLabels.toRefArray().map((label) => label.id),
       filterText: board.filterText,
       isUnreadFilterEnabled: board.isUnreadFilterEnabled,
+      dueDateFilter: board.dueDateFilter,
     });
   }
 
@@ -233,6 +238,17 @@ export default class extends BaseModel {
 
         board.update({
           isUnreadFilterEnabled: payload.isEnabled,
+        });
+
+        this.saveFilters(board);
+
+        break;
+      }
+      case ActionTypes.DUE_DATE_FILTER_IN_CURRENT_BOARD_UPDATE: {
+        const board = Board.withId(payload.boardId);
+
+        board.update({
+          dueDateFilter: payload.dueDateFilter,
         });
 
         this.saveFilters(board);

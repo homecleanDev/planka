@@ -1,8 +1,10 @@
 import { attr, fk } from 'redux-orm';
+import differenceInCalendarDays from 'date-fns/differenceInCalendarDays';
 
 import BaseModel from './BaseModel';
 import User from './User';
 import ActionTypes from '../constants/ActionTypes';
+import { DueDateFilterTypes } from '../constants/Enums';
 
 export default class extends BaseModel {
   static modelName = 'List';
@@ -131,7 +133,7 @@ export default class extends BaseModel {
 
     const filterUserIds = this.board.filterUsers.toRefArray().map((user) => user.id);
     const filterLabelIds = this.board.filterLabels.toRefArray().map((label) => label.id);
-    const { isUnreadFilterEnabled } = this.board;
+    const { dueDateFilter, isUnreadFilterEnabled } = this.board;
 
     if (filterUserIds.length > 0) {
       cardModels = cardModels.filter((cardModel) => {
@@ -153,6 +155,27 @@ export default class extends BaseModel {
       cardModels = cardModels.filter(
         (cardModel) => cardModel.getUnreadNotificationsQuerySet().count() > 0,
       );
+    }
+
+    if (dueDateFilter) {
+      cardModels = cardModels.filter((cardModel) => {
+        if (!cardModel.dueDate) {
+          return false;
+        }
+
+        const daysOverdue = differenceInCalendarDays(new Date(), cardModel.dueDate);
+
+        switch (dueDateFilter) {
+          case DueDateFilterTypes.OVERDUE:
+            return daysOverdue > 0;
+          case DueDateFilterTypes.TODAY:
+            return daysOverdue === 0;
+          case DueDateFilterTypes.ON_TIME:
+            return daysOverdue < 0;
+          default:
+            return true;
+        }
+      });
     }
 
     return cardModels;

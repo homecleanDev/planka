@@ -137,6 +137,14 @@ const updateUnreadFilterInCurrentBoard = (boardId, isEnabled) => ({
   },
 });
 
+const updateDueDateFilterInCurrentBoard = (boardId, dueDateFilter) => ({
+  type: ActionTypes.DUE_DATE_FILTER_IN_CURRENT_BOARD_UPDATE,
+  payload: {
+    boardId,
+    dueDateFilter,
+  },
+});
+
 const searchInCurrentBoard = () => ({
   type: ActionTypes.BOARD_SEARCH_IN_CURRENT_BOARD,
   payload: {},
@@ -157,5 +165,6 @@ export default {
   handleCardDelete,
   filterText,
   updateUnreadFilterInCurrentBoard,
+  updateDueDateFilterInCurrentBoard,
   searchInCurrentBoard,
 };

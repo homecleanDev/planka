@@ -271,6 +271,12 @@ export function* updateUnreadFilterInCurrentBoard(isEnabled) {
   yield put(actions.updateUnreadFilterInCurrentBoard(boardId, isEnabled));
 }
 
+export function* updateDueDateFilterInCurrentBoard(dueDateFilter) {
+  const { boardId } = yield select(selectors.selectPath);
+
+  yield put(actions.updateDueDateFilterInCurrentBoard(boardId, dueDateFilter));
+}
+
 export default {
   createCard,
   handleCardCreate,
@@ -288,4 +294,5 @@ export default {
   handleCardDelete,
   handleTextFilter,
   updateUnreadFilterInCurrentBoard,
+  updateDueDateFilterInCurrentBoard,
 };

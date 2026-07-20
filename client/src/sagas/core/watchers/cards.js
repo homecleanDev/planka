@@ -46,5 +46,9 @@ export default function* cardsWatchers() {
       EntryActionTypes.UNREAD_FILTER_IN_CURRENT_BOARD_UPDATE,
       ({ payload: { isEnabled } }) => services.updateUnreadFilterInCurrentBoard(isEnabled),
     ),
+    takeEvery(
+      EntryActionTypes.DUE_DATE_FILTER_IN_CURRENT_BOARD_UPDATE,
+      ({ payload: { dueDateFilter } }) => services.updateDueDateFilterInCurrentBoard(dueDateFilter),
+    ),
   ]);
 }

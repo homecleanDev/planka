@@ -15,6 +15,12 @@ export const ListSortTypes = {
   CREATED_AT_DESC: 'createdAt_desc',
 };
 
+export const DueDateFilterTypes = {
+  OVERDUE: 'overdue',
+  TODAY: 'today',
+  ON_TIME: 'onTime',
+};
+
 export const ActivityTypes = {
   CREATE_CARD: 'createCard',
   MOVE_CARD: 'moveCard',

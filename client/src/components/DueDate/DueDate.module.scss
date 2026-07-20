@@ -25,6 +25,36 @@
     color: #17394d;
   }
 
+  .wrapperDueSoon {
+    background: #61bd4f;
+    color: #fff;
+  }
+
+  .wrapperDueSoon.wrapperHoverable:hover {
+    background: #519839;
+    color: #fff;
+  }
+
+  .wrapperDueToday {
+    background: #f2d600;
+    color: #17394d;
+  }
+
+  .wrapperDueToday.wrapperHoverable:hover {
+    background: #e6c900;
+    color: #17394d;
+  }
+
+  .wrapperOverdue {
+    background: #e60023;
+    color: #fff;
+  }
+
+  .wrapperOverdue.wrapperHoverable:hover {
+    background: #c9001f;
+    color: #fff;
+  }
+
   /* Sizes */
 
   .wrapperTiny {

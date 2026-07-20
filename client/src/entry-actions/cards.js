@@ -119,6 +119,13 @@ const updateUnreadFilterInCurrentBoard = (isEnabled) => ({
   },
 });
 
+const updateDueDateFilterInCurrentBoard = (dueDateFilter) => ({
+  type: EntryActionTypes.DUE_DATE_FILTER_IN_CURRENT_BOARD_UPDATE,
+  payload: {
+    dueDateFilter,
+  },
+});
+
 export default {
   createCard,
   handleCardCreate,
@@ -136,4 +143,5 @@ export default {
   handleCardDelete,
   filterText,
   updateUnreadFilterInCurrentBoard,
+  updateDueDateFilterInCurrentBoard,
 };

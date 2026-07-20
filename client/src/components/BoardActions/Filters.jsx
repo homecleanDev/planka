@@ -10,8 +10,16 @@ import User from '../User';
 import Label from '../Label';
 import BoardMembershipsStep from '../BoardMembershipsStep';
 import LabelsStep from '../LabelsStep';
+import DueDateFilterStep from './DueDateFilterStep';
+import { DueDateFilterTypes } from '../../constants/Enums';
 
 import styles from './Filters.module.scss';
+
+const DUE_DATE_FILTER_LABELS = {
+  [DueDateFilterTypes.OVERDUE]: 'common.overdue',
+  [DueDateFilterTypes.TODAY]: 'common.dueToday',
+  [DueDateFilterTypes.ON_TIME]: 'common.onTime',
+};
 
 const Filters = React.memo(
   ({
@@ -19,6 +27,7 @@ const Filters = React.memo(
     labels,
     filterText,
     isUnreadFilterEnabled,
+    dueDateFilter,
     isSearchFetching,
     allBoardMemberships,
     allLabels,
@@ -33,6 +42,7 @@ const Filters = React.memo(
     onLabelDelete,
     onTextFilterUpdate,
     onUnreadFilterUpdate,
+    onDueDateFilterUpdate,
   }) => {
     const [t] = useTranslation();
     const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -90,8 +100,16 @@ const Filters = React.memo(
       onUnreadFilterUpdate(!isUnreadFilterEnabled);
     }, [isUnreadFilterEnabled, onUnreadFilterUpdate]);
 
+    const handleDueDateFilterSelect = useCallback(
+      (nextDueDateFilter) => {
+        onDueDateFilterUpdate(nextDueDateFilter);
+      },
+      [onDueDateFilterUpdate],
+    );
+
     const BoardMembershipsPopup = usePopup(BoardMembershipsStep);
     const LabelsPopup = usePopup(LabelsStep);
+    const DueDateFilterPopup = usePopup(DueDateFilterStep);
 
     const isSearchActive = filterText || isSearchFocused;
 
@@ -151,6 +169,22 @@ const Filters = React.memo(
           ))}
         </span>
         <span className={styles.filter}>
+          <DueDateFilterPopup onSelect={handleDueDateFilterSelect}>
+            <button
+              type="button"
+              className={classNames(
+                styles.filterButton,
+                dueDateFilter && styles.filterButtonActive,
+              )}
+            >
+              <span className={styles.filterTitle}>{`${t('common.due')}:`}</span>
+              <span className={styles.filterLabel}>
+                {dueDateFilter ? t(DUE_DATE_FILTER_LABELS[dueDateFilter]) : t('common.all')}
+              </span>
+            </button>
+          </DueDateFilterPopup>
+        </span>
+        <span className={styles.filter}>
           <button
             type="button"
             className={classNames(
@@ -202,6 +236,7 @@ Filters.propTypes = {
   labels: PropTypes.array.isRequired,
   filterText: PropTypes.string.isRequired,
   isUnreadFilterEnabled: PropTypes.bool.isRequired,
+  dueDateFilter: PropTypes.oneOf(Object.values(DueDateFilterTypes)),
   isSearchFetching: PropTypes.bool.isRequired,
   allBoardMemberships: PropTypes.array.isRequired,
   allLabels: PropTypes.array.isRequired,
@@ -217,6 +252,11 @@ Filters.propTypes = {
   onLabelDelete: PropTypes.func.isRequired,
   onTextFilterUpdate: PropTypes.func.isRequired,
   onUnreadFilterUpdate: PropTypes.func.isRequired,
+  onDueDateFilterUpdate: PropTypes.func.isRequired,
+};
+
+Filters.defaultProps = {
+  dueDateFilter: undefined,
 };
 
 export default Filters;

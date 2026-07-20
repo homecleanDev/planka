@@ -211,6 +211,24 @@ export const selectIsUnreadFilterEnabledForCurrentBoard = createSelector(
   },
 );
 
+export const selectDueDateFilterForCurrentBoard = createSelector(
+  orm,
+  (state) => selectPath(state).boardId,
+  ({ Board }, id) => {
+    if (!id) {
+      return id;
+    }
+
+    const boardModel = Board.withId(id);
+
+    if (!boardModel) {
+      return boardModel;
+    }
+
+    return boardModel.dueDateFilter;
+  },
+);
+
 export const selectIsBoardWithIdExists = createSelector(
   orm,
   (_, id) => id,
@@ -229,5 +247,6 @@ export default {
   selectFilterLabelsForCurrentBoard,
   selectFilterTextForCurrentBoard,
   selectIsUnreadFilterEnabledForCurrentBoard,
+  selectDueDateFilterForCurrentBoard,
   selectIsBoardWithIdExists,
 };
