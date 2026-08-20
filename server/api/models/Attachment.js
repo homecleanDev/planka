@@ -1,3 +1,5 @@
+const { buildS3ObjectUrl } = require('../../utils/s3Url');
+
 /**
  * Attachment.js
  *
@@ -49,7 +51,7 @@ module.exports = {
 
   customToJSON() {
     // Generate the full URL from the stored key
-    const fullUrl = `https://${process.env.AWS_BUCKET}.s3.${process.env.AWS_DEFAULT_REGION}.amazonaws.com/attachments/${this.dirname}/${this.filename}`;
+    const fullUrl = buildS3ObjectUrl(`attachments/${this.dirname}/${this.filename}`);
 
     return {
       ..._.omit(this, ['dirname', 'filename', 'image.thumbnailsExtension']),

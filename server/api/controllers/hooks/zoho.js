@@ -7,6 +7,7 @@ const {
   getThreadMessageIds,
   replaceInlineImagePlaceholders,
 } = require('../../../utils/zohoWebhook');
+const { buildS3ObjectUrl } = require('../../../utils/s3Url');
 
 const extractEmails = (...values) =>
   values
@@ -232,8 +233,7 @@ const saveWebhookLog = async (token, payload) => {
   }
 };
 
-const getAttachmentPublicUrl = (fileData) =>
-  `https://${process.env.AWS_BUCKET}.s3.${process.env.AWS_DEFAULT_REGION}.amazonaws.com/${fileData.url}`;
+const getAttachmentPublicUrl = (fileData) => buildS3ObjectUrl(fileData.url);
 
 const buildInlineImageReplacements = (fileDataItems) =>
   fileDataItems.reduce((result, fileData) => {
