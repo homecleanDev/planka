@@ -8,8 +8,12 @@
     top: 0;
   }
 
-  .contentPdf {
-    height: 100%;
+  .contentDocument {
+    background: #fff;
+    border: 0;
+    box-shadow: 0 16px 48px rgba(9, 30, 66, 0.35);
+    height: min(820px, calc(100vh - 112px));
+    max-width: calc(100vw - 64px);
     width: 1120px;
   }
 

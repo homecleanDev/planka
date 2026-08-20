@@ -12,19 +12,62 @@ import Item from './Item';
 import styles from './Attachments.module.scss';
 
 const INITIALLY_VISIBLE = 4;
+const DOCUMENT_PREVIEW_WIDTH = 1120;
+const DOCUMENT_PREVIEW_HEIGHT = 820;
+const SPREADSHEET_EXTENSIONS = ['xls', 'xlsx'];
 
-function GalleryImageWithDimensions({ item, isPdf, isVisible, canEdit, handleCoverSelect, handleCoverDeselect, handleUpdate, handleDelete, ...itemProps }) {
+const getExtension = (item) => {
+  const value = item.name || item.url || '';
+  const pathname = value.split(/[?#]/)[0];
+  const filename = pathname.split('/').pop() || '';
+  const extension = filename.slice((Math.max(0, filename.lastIndexOf('.')) || Infinity) + 1);
+
+  return extension.toLowerCase();
+};
+
+const getPreviewType = (item) => {
+  const extension = getExtension(item);
+
+  if (extension === 'pdf') {
+    return 'pdf';
+  }
+
+  if (SPREADSHEET_EXTENSIONS.includes(extension)) {
+    return 'spreadsheet';
+  }
+
+  if ((item.image && typeof item.image === 'object') || isImage(item.url)) {
+    return 'image';
+  }
+
+  return null;
+};
+
+const getSpreadsheetViewerUrl = (url) =>
+  `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`;
+
+function GalleryImageWithDimensions({
+  item,
+  previewType,
+  slideData,
+  isVisible,
+  canEdit,
+  handleCoverSelect,
+  handleCoverDeselect,
+  handleUpdate,
+  handleDelete,
+}) {
   const [dimensions, setDimensions] = React.useState({ width: null, height: null });
 
   React.useEffect(() => {
-    if (!isPdf && isImage(item.url) && !dimensions.width && !dimensions.height) {
+    if (previewType === 'image' && isImage(item.url) && !dimensions.width && !dimensions.height) {
       const img = new window.Image();
       img.src = item.url;
       img.onload = () => {
         setDimensions({ width: img.naturalWidth, height: img.naturalHeight });
       };
     }
-  }, [item.url, isPdf, dimensions.width, dimensions.height]);
+  }, [item.url, previewType, dimensions.width, dimensions.height]);
 
   if (isImage(item.url) && (!dimensions.width || !dimensions.height)) {
     return null; // or a loader
@@ -32,12 +75,12 @@ function GalleryImageWithDimensions({ item, isPdf, isVisible, canEdit, handleCov
 
   return (
     <GalleryItem
-      {...itemProps}
       key={item.id}
       original={item.url}
       caption={item.name}
-      width={isImage(item.url) ? dimensions.width : undefined}
-      height={isImage(item.url) ? dimensions.height : undefined}
+      width={previewType === 'image' ? dimensions.width : slideData.width}
+      height={previewType === 'image' ? dimensions.height : slideData.height}
+      content={slideData.content}
     >
       {({ ref, open }) =>
         isVisible ? (
@@ -45,12 +88,12 @@ function GalleryImageWithDimensions({ item, isPdf, isVisible, canEdit, handleCov
             ref={ref}
             name={item.name}
             url={item.url}
-            coverUrl={item.coverUrl}
+            coverUrl={previewType === 'image' ? item.coverUrl : undefined}
             createdAt={item.createdAt}
             isCover={item.isCover}
             isPersisted={item.isPersisted}
             canEdit={canEdit}
-            onClick={item.image || isPdf || isImage(item.coverUrl) ? open : undefined}
+            onClick={previewType ? open : undefined}
             onCoverSelect={() => handleCoverSelect(item.id)}
             onCoverDeselect={handleCoverDeselect}
             onUpdate={(data) => handleUpdate(item.id, data)}
@@ -63,6 +106,35 @@ function GalleryImageWithDimensions({ item, isPdf, isVisible, canEdit, handleCov
     </GalleryItem>
   );
 }
+
+GalleryImageWithDimensions.propTypes = {
+  item: PropTypes.shape({
+    id: PropTypes.string.isRequired,
+    name: PropTypes.string.isRequired,
+    url: PropTypes.string,
+    coverUrl: PropTypes.string,
+    createdAt: PropTypes.instanceOf(Date),
+    isCover: PropTypes.bool.isRequired,
+    isPersisted: PropTypes.bool.isRequired,
+  }).isRequired,
+  previewType: PropTypes.oneOf(['image', 'pdf', 'spreadsheet']),
+  slideData: PropTypes.shape({
+    width: PropTypes.number,
+    height: PropTypes.number,
+    content: PropTypes.node,
+  }),
+  isVisible: PropTypes.bool.isRequired,
+  canEdit: PropTypes.bool.isRequired,
+  handleCoverSelect: PropTypes.func.isRequired,
+  handleCoverDeselect: PropTypes.func.isRequired,
+  handleUpdate: PropTypes.func.isRequired,
+  handleDelete: PropTypes.func.isRequired,
+};
+
+GalleryImageWithDimensions.defaultProps = {
+  previewType: null,
+  slideData: {},
+};
 
 const Attachments = React.memo(
   ({ items, canEdit, onUpdate, onDelete, onCoverUpdate, onGalleryOpen, onGalleryClose }) => {
@@ -110,20 +182,43 @@ const Attachments = React.memo(
     }, [toggleAllVisible]);
 
     const galleryItemsNode = items.map((item, index) => {
-      const isPdf = item.url && item.url.endsWith('.pdf');
-      let props;
-      if (item.image) {
-        props = item.image;
-      } else {
-        props = {
-          content: isPdf ? (
-            // eslint-disable-next-line jsx-a11y/alt-text
+      const previewType = getPreviewType(item);
+      let slideData;
+      if (previewType === 'image' && item.image && typeof item.image === 'object') {
+        slideData = item.image;
+      } else if (previewType === 'pdf') {
+        slideData = {
+          width: DOCUMENT_PREVIEW_WIDTH,
+          height: DOCUMENT_PREVIEW_HEIGHT,
+          content: (
             <object
               data={item.url}
               type="application/pdf"
-              className={classNames(styles.content, styles.contentPdf)}
+              className={classNames(styles.content, styles.contentDocument)}
+            >
+              <iframe
+                src={item.url}
+                title={item.name}
+                className={classNames(styles.content, styles.contentDocument)}
+              />
+            </object>
+          ),
+        };
+      } else if (previewType === 'spreadsheet') {
+        slideData = {
+          width: DOCUMENT_PREVIEW_WIDTH,
+          height: DOCUMENT_PREVIEW_HEIGHT,
+          content: (
+            <iframe
+              src={getSpreadsheetViewerUrl(item.url)}
+              title={item.name}
+              className={classNames(styles.content, styles.contentDocument)}
             />
-          ) : (
+          ),
+        };
+      } else {
+        slideData = {
+          content: (
             <span className={classNames(styles.content, styles.contentError)}>
               {t('common.thereIsNoPreviewAvailableForThisAttachment')}
             </span>
@@ -135,9 +230,9 @@ const Attachments = React.memo(
         <GalleryImageWithDimensions
           key={item.id}
           item={item}
-          isPdf={isPdf}
+          previewType={previewType}
           isVisible={isVisible}
-          {...props}
+          slideData={slideData}
           canEdit={canEdit}
           handleCoverSelect={handleCoverSelect}
           handleCoverDeselect={handleCoverDeselect}

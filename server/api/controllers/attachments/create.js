@@ -83,8 +83,7 @@ module.exports = {
         filename: inputs.filename,
         name: inputs.name || inputs.filename,
         url: inputs.key,
-        coverUrl: inputs.key,
-        image: inputs.key, // TODO: Add image processing for direct uploads
+        image: null, // TODO: Add image processing for direct uploads
       };
     } else {
       // Legacy file upload through server
