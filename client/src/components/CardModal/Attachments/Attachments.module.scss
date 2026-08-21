@@ -25,6 +25,12 @@
     width: 470px;
   }
 
+  .contentMedia {
+    max-height: calc(100vh - 112px);
+    max-width: calc(100vw - 64px);
+    object-fit: contain;
+  }
+
   .toggleButton {
     background: transparent;
     box-shadow: none;

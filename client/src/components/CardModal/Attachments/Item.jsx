@@ -54,7 +54,7 @@ const Item = React.forwardRef(
 
     if (!isPersisted) {
       return (
-        <div className={classNames(styles.wrapper, styles.wrapperSubmitting)}>
+        <div ref={ref} className={classNames(styles.wrapper, styles.wrapperSubmitting)}>
           <Loader inverted />
         </div>
       );

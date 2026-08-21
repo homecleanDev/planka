@@ -15,6 +15,8 @@ const INITIALLY_VISIBLE = 4;
 const DOCUMENT_PREVIEW_WIDTH = 1120;
 const DOCUMENT_PREVIEW_HEIGHT = 820;
 const SPREADSHEET_EXTENSIONS = ['xls', 'xlsx'];
+const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico', 'avif'];
+const VIDEO_EXTENSIONS = ['mp4', 'webm', 'ogg', 'ogv', 'mov', 'm4v'];
 
 const getExtension = (item) => {
   const value = item.name || item.url || '';
@@ -36,7 +38,15 @@ const getPreviewType = (item) => {
     return 'spreadsheet';
   }
 
-  if ((item.image && typeof item.image === 'object') || isImage(item.url)) {
+  if (VIDEO_EXTENSIONS.includes(extension)) {
+    return 'video';
+  }
+
+  if (
+    IMAGE_EXTENSIONS.includes(extension) ||
+    (item.image && typeof item.image === 'object') ||
+    isImage(item.url)
+  ) {
     return 'image';
   }
 
@@ -57,29 +67,50 @@ function GalleryImageWithDimensions({
   handleUpdate,
   handleDelete,
 }) {
-  const [dimensions, setDimensions] = React.useState({ width: null, height: null });
+  const [imageDimensions, setImageDimensions] = React.useState(null);
+  const original = slideData.original || item.url;
 
   React.useEffect(() => {
-    if (previewType === 'image' && isImage(item.url) && !dimensions.width && !dimensions.height) {
-      const img = new window.Image();
-      img.src = item.url;
-      img.onload = () => {
-        setDimensions({ width: img.naturalWidth, height: img.naturalHeight });
-      };
+    if (previewType !== 'image' || (slideData.width && slideData.height)) {
+      setImageDimensions(null);
+      return undefined;
     }
-  }, [item.url, previewType, dimensions.width, dimensions.height]);
 
-  if (isImage(item.url) && (!dimensions.width || !dimensions.height)) {
-    return null; // or a loader
-  }
+    let isCanceled = false;
+    const image = new window.Image();
+
+    image.onload = () => {
+      if (!isCanceled) {
+        setImageDimensions({
+          width: image.naturalWidth,
+          height: image.naturalHeight,
+        });
+      }
+    };
+
+    image.src = original;
+
+    return () => {
+      isCanceled = true;
+    };
+  }, [original, previewType, slideData.width, slideData.height]);
+
+  const width =
+    previewType === 'image'
+      ? slideData.width || (imageDimensions && imageDimensions.width) || DOCUMENT_PREVIEW_WIDTH
+      : slideData.width;
+  const height =
+    previewType === 'image'
+      ? slideData.height || (imageDimensions && imageDimensions.height) || DOCUMENT_PREVIEW_HEIGHT
+      : slideData.height;
 
   return (
     <GalleryItem
       key={item.id}
-      original={item.url}
       caption={item.name}
-      width={previewType === 'image' ? dimensions.width : slideData.width}
-      height={previewType === 'image' ? dimensions.height : slideData.height}
+      width={width}
+      height={height}
+      original={original}
       content={slideData.content}
     >
       {({ ref, open }) =>
@@ -112,13 +143,15 @@ GalleryImageWithDimensions.propTypes = {
     id: PropTypes.string.isRequired,
     name: PropTypes.string.isRequired,
     url: PropTypes.string,
+    downloadUrl: PropTypes.string,
     coverUrl: PropTypes.string,
     createdAt: PropTypes.instanceOf(Date),
     isCover: PropTypes.bool.isRequired,
     isPersisted: PropTypes.bool.isRequired,
   }).isRequired,
-  previewType: PropTypes.oneOf(['image', 'pdf', 'spreadsheet']),
+  previewType: PropTypes.oneOf(['image', 'pdf', 'spreadsheet', 'video']),
   slideData: PropTypes.shape({
+    original: PropTypes.string,
     width: PropTypes.number,
     height: PropTypes.number,
     content: PropTypes.node,
@@ -183,21 +216,39 @@ const Attachments = React.memo(
 
     const galleryItemsNode = items.map((item, index) => {
       const previewType = getPreviewType(item);
+      const previewUrl = item.downloadUrl || item.url;
       let slideData;
-      if (previewType === 'image' && item.image && typeof item.image === 'object') {
-        slideData = item.image;
+      if (previewType === 'image') {
+        slideData = {
+          original: previewUrl,
+          width: item.image && typeof item.image === 'object' ? item.image.width : undefined,
+          height: item.image && typeof item.image === 'object' ? item.image.height : undefined,
+        };
+      } else if (previewType === 'video') {
+        slideData = {
+          width: DOCUMENT_PREVIEW_WIDTH,
+          height: DOCUMENT_PREVIEW_HEIGHT,
+          content: (
+            // eslint-disable-next-line jsx-a11y/media-has-caption
+            <video
+              src={previewUrl}
+              controls
+              className={classNames(styles.content, styles.contentMedia)}
+            />
+          ),
+        };
       } else if (previewType === 'pdf') {
         slideData = {
           width: DOCUMENT_PREVIEW_WIDTH,
           height: DOCUMENT_PREVIEW_HEIGHT,
           content: (
             <object
-              data={item.url}
+              data={previewUrl}
               type="application/pdf"
               className={classNames(styles.content, styles.contentDocument)}
             >
               <iframe
-                src={item.url}
+                src={previewUrl}
                 title={item.name}
                 className={classNames(styles.content, styles.contentDocument)}
               />
@@ -249,6 +300,12 @@ const Attachments = React.memo(
           withDownloadButton
           options={{
             wheelToZoom: true,
+            secondaryZoomLevel: (zoomLevel) => Math.max(zoomLevel.fit * 3, 2),
+            maxZoomLevel: (zoomLevel) => Math.max(zoomLevel.fit * 6, 4),
+            clickToCloseNonZoomable: false,
+            imageClickAction: 'zoom',
+            doubleTapAction: 'zoom',
+            bgClickAction: 'close',
             showHideAnimationType: 'none',
             closeTitle: '',
             zoomTitle: '',
