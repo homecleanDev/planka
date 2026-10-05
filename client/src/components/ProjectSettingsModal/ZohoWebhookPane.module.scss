@@ -22,6 +22,24 @@
   margin-top: 12px;
 }
 
+.descriptionFieldRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 8px;
+
+  :global(.field) {
+    flex: 1;
+    margin-bottom: 0;
+  }
+}
+
+.fieldLabel {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
 .connectedAccounts {
   display: flex;
   flex-direction: column;

@@ -147,6 +147,37 @@ const zohoConnectionValidator = (value) => {
   );
 };
 
+const genericWebhookFieldValidator = (value) =>
+  _.isString(value) && value.trim().length > 0 && value.length <= 255;
+
+const genericWebhookValidator = (value) => {
+  if (_.isNull(value)) {
+    return true;
+  }
+
+  if (!Array.isArray(value)) {
+    return false;
+  }
+
+  return value.every(
+    (item) =>
+      _.isPlainObject(item) &&
+      _.isString(item.token) &&
+      item.token.trim().length > 0 &&
+      _.isString(item.listId) &&
+      /^[0-9]+$/.test(item.listId) &&
+      _.isArray(item.userIds) &&
+      item.userIds.every((userId) => _.isString(userId) && /^[0-9]+$/.test(userId)) &&
+      _.isString(item.creatorUserId) &&
+      /^[0-9]+$/.test(item.creatorUserId) &&
+      genericWebhookFieldValidator(item.titleField) &&
+      _.isArray(item.descriptionFields) &&
+      item.descriptionFields.length > 0 &&
+      item.descriptionFields.every(genericWebhookFieldValidator) &&
+      (_.isUndefined(item.id) || (_.isString(item.id) && item.id.length > 0)),
+  );
+};
+
 module.exports = {
   inputs: {
     id: {
@@ -177,6 +208,10 @@ module.exports = {
     zohoWebhooks: {
       type: 'json',
       custom: zohoWebhooksValidator,
+    },
+    genericWebhooks: {
+      type: 'json',
+      custom: genericWebhookValidator,
     },
     zohoConnection: {
       type: 'json',
@@ -232,11 +267,14 @@ module.exports = {
       !_.isUndefined(inputs.zohoWebhookUserIds) ||
       !_.isUndefined(inputs.zohoWebhookCreatorUserId);
 
-    if (hasZohoWebhookChange && !currentUser.isAdmin) {
+    const hasGenericWebhookChange = !_.isUndefined(inputs.genericWebhooks);
+
+    if ((hasZohoWebhookChange || hasGenericWebhookChange) && !currentUser.isAdmin) {
       throw Errors.PROJECT_NOT_FOUND; // Forbidden
     }
 
     let normalizedZohoWebhooks = inputs.zohoWebhooks;
+    let normalizedGenericWebhooks = inputs.genericWebhooks;
 
     if (!_.isUndefined(inputs.zohoWebhooks) && Array.isArray(project.zohoWebhooks)) {
       const existingWebhookById = project.zohoWebhooks.reduce((result, item) => {
@@ -264,6 +302,21 @@ module.exports = {
       });
     }
 
+    if (!_.isUndefined(inputs.genericWebhooks) && Array.isArray(project.genericWebhooks)) {
+      const existingWebhookById = project.genericWebhooks.reduce((result, item) => {
+        if (item && item.id) {
+          return { ...result, [item.id]: item };
+        }
+
+        return result;
+      }, {});
+
+      normalizedGenericWebhooks = inputs.genericWebhooks.map((item) => {
+        const existingWebhook = item.id && existingWebhookById[item.id];
+        return existingWebhook ? { ...item, token: existingWebhook.token } : item;
+      });
+    }
+
     const values = {
       ..._.pick(inputs, [
         'name',
@@ -279,6 +332,9 @@ module.exports = {
       ]),
       ...(!_.isUndefined(normalizedZohoWebhooks) && {
         zohoWebhooks: normalizedZohoWebhooks,
+      }),
+      ...(!_.isUndefined(normalizedGenericWebhooks) && {
+        genericWebhooks: normalizedGenericWebhooks,
       }),
     };
 

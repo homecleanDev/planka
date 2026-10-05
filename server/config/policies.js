@@ -31,4 +31,5 @@ module.exports.policies = {
   'access-tokens/exchange-using-oidc': true,
   'zoho/callback': true,
   'hooks/zoho': true,
+  'hooks/generic': true,
 };

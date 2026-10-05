@@ -18,6 +18,7 @@ module.exports.routes = {
   'GET /api/zoho/callback': 'zoho/callback',
 
   'POST /hook/zoho/:token': 'hooks/zoho',
+  'POST /hook/generic/:token': 'hooks/generic',
 
   'GET /api/users': 'users/index',
   'POST /api/users': 'users/create',

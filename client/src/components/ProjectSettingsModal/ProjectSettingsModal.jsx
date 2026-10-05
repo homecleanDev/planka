@@ -8,6 +8,7 @@ import BackgroundPane from './BackgroundPane';
 import GeneralPane from './GeneralPane';
 import CardPane from './CardPane';
 import ZohoWebhookPane from './ZohoWebhookPane';
+import GenericWebhookPane from './GenericWebhookPane';
 
 const ProjectSettingsModal = React.memo(
   ({
@@ -20,6 +21,7 @@ const ProjectSettingsModal = React.memo(
     isBackgroundImageUpdating,
     cardFields,
     zohoWebhooks,
+    genericWebhooks,
     zohoConnection,
     managers,
     allUsers,
@@ -117,6 +119,18 @@ const ProjectSettingsModal = React.memo(
           />
         ),
       });
+      panes.splice(canEditProject ? 4 : 1, 0, {
+        menuItem: 'Generic Webhook',
+        render: () => (
+          <GenericWebhookPane
+            items={genericWebhooks}
+            boards={projectBoards}
+            users={currentBoardUsers}
+            currentUser={currentUser}
+            onUpdate={onUpdate}
+          />
+        ),
+      });
     }
 
     return (
@@ -145,6 +159,7 @@ ProjectSettingsModal.propTypes = {
   backgroundImage: PropTypes.object,
   cardFields: PropTypes.array.isRequired,
   zohoWebhooks: PropTypes.array.isRequired,
+  genericWebhooks: PropTypes.array.isRequired,
   zohoConnection: PropTypes.object, // eslint-disable-line react/forbid-prop-types
   /* eslint-enable react/forbid-prop-types */
   isBackgroundImageUpdating: PropTypes.bool.isRequired,

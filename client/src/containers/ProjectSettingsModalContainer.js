@@ -23,6 +23,7 @@ const mapStateToProps = (state) => {
     member_card_deletion_enabled: memberCardDeletionEnabled,
     cardFields,
     zohoWebhooks,
+    genericWebhooks,
     zohoConnection,
     zohoWebhookToken,
     zohoWebhookListId,
@@ -54,6 +55,7 @@ const mapStateToProps = (state) => {
             },
           ]
         : []),
+    genericWebhooks: genericWebhooks || [],
     zohoConnection,
     managers,
     allUsers: users,
