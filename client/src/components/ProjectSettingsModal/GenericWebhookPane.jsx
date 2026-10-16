@@ -12,6 +12,7 @@ const createWebhook = (currentUserId) => ({
   boardId: null,
   listId: '',
   userIds: [],
+  labelIds: [],
   creatorUserId: currentUserId,
   titleField: '',
   descriptionFields: [''],
@@ -23,6 +24,7 @@ const normalizeWebhook = (item, currentUserId, listToBoardId) => ({
   boardId: item.boardId || listToBoardId[item.listId] || null,
   listId: item.listId || null,
   userIds: [...new Set(item.userIds || [])].filter(Boolean),
+  labelIds: [...new Set(item.labelIds || [])].filter(Boolean),
   creatorUserId: item.creatorUserId || currentUserId,
   titleField: item.titleField || '',
   descriptionFields:
@@ -34,7 +36,7 @@ const normalizeWebhook = (item, currentUserId, listToBoardId) => ({
 const buildWebhookUrl = (token) =>
   token && typeof window !== 'undefined' ? `${window.location.origin}/hook/generic/${token}` : '';
 
-const GenericWebhookPane = React.memo(({ items, boards, users, currentUser, onUpdate }) => {
+const GenericWebhookPane = React.memo(({ items, boards, currentUser, onUpdate }) => {
   const safeItems = useMemo(() => (Array.isArray(items) ? items : []), [items]);
   const listToBoardId = useMemo(
     () =>
@@ -71,22 +73,39 @@ const GenericWebhookPane = React.memo(({ items, boards, users, currentUser, onUp
     () => boards.map((board) => ({ key: board.id, text: board.name, value: board.id })),
     [boards],
   );
-  const userOptions = useMemo(
-    () =>
-      users.map((user) => ({
+  const getBoardForWebhook = useCallback(
+    (item) => boards.find((board) => board.id === item.boardId),
+    [boards],
+  );
+  const getUserOptions = useCallback(
+    (item) =>
+      (getBoardForWebhook(item)?.memberUsers || []).map((user) => ({
         key: user.id,
         text: user.name,
         value: user.id,
         description: user.email,
       })),
-    [users],
+    [getBoardForWebhook],
+  );
+  const getLabelOptions = useCallback(
+    (item) =>
+      (getBoardForWebhook(item)?.labels || []).map((label) => ({
+        key: label.id,
+        text: label.name || 'Unnamed label',
+        value: label.id,
+      })),
+    [getBoardForWebhook],
   );
 
   const handleFieldChange = useCallback((index, { name, value }) => {
     setWebhooks((prev) =>
       prev.map((item, currentIndex) =>
         currentIndex === index
-          ? { ...item, [name]: value, ...(name === 'boardId' && { listId: null }) }
+          ? {
+              ...item,
+              [name]: value,
+              ...(name === 'boardId' && { listId: null, userIds: [], labelIds: [] }),
+            }
           : item,
       ),
     );
@@ -246,9 +265,22 @@ const GenericWebhookPane = React.memo(({ items, boards, users, currentUser, onUp
               search
               name="userIds"
               label="Assignees"
-              options={userOptions}
+              options={getUserOptions(item)}
               value={item.userIds}
               placeholder="Select users"
+              onChange={(event, data) => handleFieldChange(index, data)}
+            />
+            <Form.Dropdown
+              fluid
+              multiple
+              selection
+              search
+              name="labelIds"
+              label="Labels"
+              options={getLabelOptions(item)}
+              value={item.labelIds}
+              placeholder="Select labels"
+              disabled={!item.boardId}
               onChange={(event, data) => handleFieldChange(index, data)}
             />
 
@@ -284,7 +316,6 @@ const GenericWebhookPane = React.memo(({ items, boards, users, currentUser, onUp
 GenericWebhookPane.propTypes = {
   items: PropTypes.arrayOf(PropTypes.object).isRequired, // eslint-disable-line react/forbid-prop-types
   boards: PropTypes.arrayOf(PropTypes.object).isRequired, // eslint-disable-line react/forbid-prop-types
-  users: PropTypes.arrayOf(PropTypes.object).isRequired, // eslint-disable-line react/forbid-prop-types
   currentUser: PropTypes.shape({ id: PropTypes.string.isRequired }).isRequired,
   onUpdate: PropTypes.func.isRequired,
 };

@@ -150,6 +150,9 @@ const zohoConnectionValidator = (value) => {
 const genericWebhookFieldValidator = (value) =>
   _.isString(value) && value.trim().length > 0 && value.length <= 255;
 
+const genericWebhookLabelIdsValidator = (value) =>
+  _.isArray(value) && value.every((labelId) => _.isString(labelId) && /^[0-9]+$/.test(labelId));
+
 const genericWebhookValidator = (value) => {
   if (_.isNull(value)) {
     return true;
@@ -168,6 +171,7 @@ const genericWebhookValidator = (value) => {
       /^[0-9]+$/.test(item.listId) &&
       _.isArray(item.userIds) &&
       item.userIds.every((userId) => _.isString(userId) && /^[0-9]+$/.test(userId)) &&
+      genericWebhookLabelIdsValidator(item.labelIds) &&
       _.isString(item.creatorUserId) &&
       /^[0-9]+$/.test(item.creatorUserId) &&
       genericWebhookFieldValidator(item.titleField) &&

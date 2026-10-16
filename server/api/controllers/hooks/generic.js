@@ -150,6 +150,24 @@ module.exports = {
       ),
     );
 
+    const boardLabels = await sails.helpers.boards.getLabels(board.id);
+    const boardLabelIds = new Set(boardLabels.map((label) => label.id));
+    const selectedLabels = (webhook.labelIds || []).filter((labelId) => boardLabelIds.has(labelId));
+
+    await Promise.all(
+      selectedLabels.map((labelId) =>
+        sails.helpers.cardLabels.createOne
+          .with({
+            values: {
+              card,
+              label: boardLabels.find((label) => label.id === labelId),
+            },
+            request: this.req,
+          })
+          .intercept('labelAlreadyInCard', () => undefined),
+      ),
+    );
+
     return {
       item: {
         id: card.id,

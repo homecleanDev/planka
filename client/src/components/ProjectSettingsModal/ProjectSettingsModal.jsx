@@ -125,7 +125,6 @@ const ProjectSettingsModal = React.memo(
           <GenericWebhookPane
             items={genericWebhooks}
             boards={projectBoards}
-            users={currentBoardUsers}
             currentUser={currentUser}
             onUpdate={onUpdate}
           />

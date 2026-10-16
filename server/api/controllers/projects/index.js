@@ -5,8 +5,13 @@ module.exports = {
     const managerProjectIds = await sails.helpers.users.getManagerProjectIds(currentUser.id);
     const managerProjects = await sails.helpers.projects.getMany(managerProjectIds);
 
-    let boardMemberships = await sails.helpers.users.getBoardMemberships(currentUser.id);
-    const membershipBoardIds = sails.helpers.utils.mapRecords(boardMemberships, 'boardId');
+    const currentUserBoardMemberships = await sails.helpers.users.getBoardMemberships(
+      currentUser.id,
+    );
+    const membershipBoardIds = sails.helpers.utils.mapRecords(
+      currentUserBoardMemberships,
+      'boardId',
+    );
 
     let membershipBoards = await sails.helpers.boards.getMany({
       id: membershipBoardIds,
@@ -26,7 +31,6 @@ module.exports = {
     const projectManagers = await sails.helpers.projects.getProjectManagers(projectIds);
 
     const userIds = sails.helpers.utils.mapRecords(projectManagers, 'userId', true);
-    const users = await sails.helpers.users.getMany(userIds);
 
     const managerBoards = await sails.helpers.projects.getBoards(managerProjectIds);
 
@@ -37,17 +41,25 @@ module.exports = {
     const boards = [...managerBoards, ...membershipBoards];
     const boardIds = sails.helpers.utils.mapRecords(boards);
 
-    boardMemberships = boardMemberships.filter((boardMembership) =>
+    const boardMemberships = await sails.helpers.boards.getBoardMemberships(boardIds);
+    const boardMemberUserIds = sails.helpers.utils.mapRecords(boardMemberships, 'userId', true);
+    const labels = await sails.helpers.boards.getLabels(boardIds);
+
+    const allUserIds = [...new Set([...userIds, ...boardMemberUserIds])];
+    const allUsers = await sails.helpers.users.getMany(allUserIds);
+
+    const filteredBoardMemberships = boardMemberships.filter((boardMembership) =>
       boardIds.includes(boardMembership.boardId),
     );
 
     return {
       items: projects,
       included: {
-        users,
+        users: allUsers,
         projectManagers,
         boards,
-        boardMemberships,
+        boardMemberships: filteredBoardMemberships,
+        labels,
       },
     };
   },

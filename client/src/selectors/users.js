@@ -89,6 +89,8 @@ export const selectProjectsToListsForCurrentUser = createSelector(
       boards: projectModel.getOrderedBoardsModelArrayForUser(id).map((boardModel) => ({
         ...boardModel.ref,
         lists: boardModel.getOrderedListsQuerySet().toRefArray(),
+        memberUsers: boardModel.memberUsers.toRefArray(),
+        labels: boardModel.getOrderedLabelsQuerySet().toRefArray(),
       })),
     }));
   },
